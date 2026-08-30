@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/unit_view.gd" id="1"]
+[ext_resource type="Theme" path="res://assets/theme.tres" id="2"]
+[ext_resource type="Shader" path="res://shaders/checkerboard_cutout.gdshader" id="3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tier_cutout"]
+shader = ExtResource("3")
+
+[node name="UnitView" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_tier_cutout")
+scale = Vector2(0.12, 0.12)
+
+[node name="TierLabel" type="Label" parent="."]
+theme = ExtResource("2")
+offset_left = 30.0
+offset_top = -49.0
+offset_right = 62.0
+offset_bottom = -19.0
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "1"

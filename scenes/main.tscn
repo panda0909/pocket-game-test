@@ -1,0 +1,83 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/board_view.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="3"]
+[ext_resource type="Texture2D" path="res://assets/vault.png" id="4"]
+[ext_resource type="Script" path="res://scenes/track_view.gd" id="5"]
+[ext_resource type="Script" path="res://scenes/background.gd" id="6"]
+[ext_resource type="Texture2D" path="res://assets/generated/stock_market_background.png" id="7"]
+[ext_resource type="Texture2D" path="res://assets/generated/stock_t_path_overlay.png" id="8"]
+[ext_resource type="Texture2D" path="res://assets/generated/stock_junction_core.png" id="9"]
+
+[sub_resource type="Curve2D" id="Curve2D_Left"]
+_data = {
+	"points": PackedVector2Array(0, 0, 0, 0, 64, 600, 0, 0, 0, 0, 360, 600, 0, 0, 0, 0, 360, 1010)
+}
+point_count = 3
+
+[sub_resource type="Curve2D" id="Curve2D_Right"]
+_data = {
+	"points": PackedVector2Array(0, 0, 0, 0, 656, 600, 0, 0, 0, 0, 360, 600, 0, 0, 0, 0, 360, 1010)
+}
+point_count = 3
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -3
+script = ExtResource("6")
+
+[node name="BattlefieldArt" type="Sprite2D" parent="."]
+z_index = -2
+position = Vector2(360, 640)
+scale = Vector2(0.765, 0.765)
+texture = ExtResource("7")
+
+[node name="TacticalMapPreview" type="Sprite2D" parent="."]
+z_index = -1
+position = Vector2(360, 360)
+scale = Vector2(0.16, 0.16)
+modulate = Color(0.40, 0.85, 0.88, 0.24)
+texture = ExtResource("8")
+
+[node name="Tracks" type="Node2D" parent="."]
+
+[node name="TrackLeft" type="Path2D" parent="Tracks"]
+curve = SubResource("Curve2D_Left")
+script = ExtResource("5")
+route_color = Color(0.25, 0.82, 0.40, 1)
+start_color = Color(0.34, 0.95, 0.55, 1)
+
+[node name="TrackRight" type="Path2D" parent="Tracks"]
+curve = SubResource("Curve2D_Right")
+script = ExtResource("5")
+route_color = Color(0.94, 0.30, 0.26, 1)
+start_color = Color(1, 0.48, 0.34, 1)
+
+[node name="Projectiles" type="Node2D" parent="."]
+
+
+[node name="Vault" type="Sprite2D" parent="."]
+position = Vector2(360, 1010)
+scale = Vector2(0.16, 0.16)
+texture = ExtResource("4")
+
+[node name="JunctionCore" type="Sprite2D" parent="."]
+z_index = 2
+position = Vector2(360, 600)
+scale = Vector2(0.09, 0.09)
+modulate = Color(0.60, 0.95, 1, 0.9)
+texture = ExtResource("9")
+
+[node name="BoardView" parent="." instance=ExtResource("2")]
+
+[node name="Effects" type="Node2D" parent="."]
+
+[node name="DamageNumbers" type="Node2D" parent="."]
+
+[node name="HUD" parent="." instance=ExtResource("3")]
+
+[node name="SpawnTimer" type="Timer" parent="."]
+wait_time = 0.5
