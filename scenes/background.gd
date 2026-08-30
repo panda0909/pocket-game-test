@@ -7,14 +7,14 @@ extends Node2D
 ## 預設 mouse_filter 為 STOP，會把整片畫面的滑鼠事件吃掉導致拖曳失效，
 ## 得記得手動設成 IGNORE。改用 Node2D 就沒有這個陷阱。
 
-const TOP_COLOR := Color(0.055, 0.075, 0.145)
-const BOTTOM_COLOR := Color(0.16, 0.095, 0.14)
+const TOP_COLOR := Color(0.025, 0.045, 0.105)
+const BOTTOM_COLOR := Color(0.10, 0.065, 0.12)
 const BANDS := 64
 
 const VIGNETTE_COLOR := Color(0.02, 0.03, 0.08)
 const VIGNETTE_STEPS := 16
 const VIGNETTE_STEP_INSET := 7.0
-const VIGNETTE_MAX_ALPHA := 0.18
+const VIGNETTE_MAX_ALPHA := 0.24
 
 
 func _draw() -> void:
@@ -26,11 +26,11 @@ func _draw() -> void:
 
 func _draw_arena(size: Vector2) -> void:
 	var arena := Rect2(26.0, 220.0, size.x - 52.0, 830.0)
-	draw_style_box(_arena_style(Color(0.075, 0.13, 0.18, 0.96), Color(0.22, 0.80, 0.72, 0.32), 3), arena)
+	draw_style_box(_arena_style(Color(0.045, 0.065, 0.13, 0.94), Color(0.82, 0.58, 0.30, 0.30), 3), arena)
 	var inner := arena.grow(-12.0)
-	draw_rect(inner, Color(0.12, 0.18, 0.18, 0.34), true)
+	draw_rect(inner, Color(0.08, 0.09, 0.17, 0.30), true)
 	for y in range(260, 1020, 80):
-		draw_line(Vector2(42, y), Vector2(size.x - 42, y), Color(1, 0.72, 0.35, 0.045), 1.0)
+		draw_line(Vector2(42, y), Vector2(size.x - 42, y), Color(0.92, 0.67, 0.40, 0.035), 1.0)
 
 
 func _arena_style(fill: Color, border: Color, width: int) -> StyleBoxFlat:

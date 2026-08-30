@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/board_view.tscn" id="2"]
@@ -9,6 +9,10 @@
 [ext_resource type="Texture2D" path="res://assets/generated/stock_market_background.png" id="7"]
 [ext_resource type="Texture2D" path="res://assets/generated/stock_t_path_overlay.png" id="8"]
 [ext_resource type="Texture2D" path="res://assets/generated/stock_junction_core.png" id="9"]
+[ext_resource type="Shader" path="res://shaders/checkerboard_cutout.gdshader" id="10"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_path_cutout"]
+shader = ExtResource("10")
 
 [sub_resource type="Curve2D" id="Curve2D_Left"]
 _data = {
@@ -39,7 +43,8 @@ texture = ExtResource("7")
 z_index = -1
 position = Vector2(360, 360)
 scale = Vector2(0.16, 0.16)
-modulate = Color(0.40, 0.85, 0.88, 0.24)
+modulate = Color(0.72, 0.64, 0.52, 0.18)
+material = SubResource("ShaderMaterial_path_cutout")
 texture = ExtResource("8")
 
 [node name="Tracks" type="Node2D" parent="."]
@@ -47,14 +52,14 @@ texture = ExtResource("8")
 [node name="TrackLeft" type="Path2D" parent="Tracks"]
 curve = SubResource("Curve2D_Left")
 script = ExtResource("5")
-route_color = Color(0.25, 0.82, 0.40, 1)
-start_color = Color(0.34, 0.95, 0.55, 1)
+route_color = Color(0.34, 0.62, 0.47, 1)
+start_color = Color(0.85, 0.68, 0.40, 1)
 
 [node name="TrackRight" type="Path2D" parent="Tracks"]
 curve = SubResource("Curve2D_Right")
 script = ExtResource("5")
-route_color = Color(0.94, 0.30, 0.26, 1)
-start_color = Color(1, 0.48, 0.34, 1)
+route_color = Color(0.72, 0.30, 0.34, 1)
+start_color = Color(0.92, 0.46, 0.40, 1)
 
 [node name="Projectiles" type="Node2D" parent="."]
 
@@ -67,8 +72,8 @@ texture = ExtResource("4")
 [node name="JunctionCore" type="Sprite2D" parent="."]
 z_index = 2
 position = Vector2(360, 600)
-scale = Vector2(0.09, 0.09)
-modulate = Color(0.60, 0.95, 1, 0.9)
+scale = Vector2(0.075, 0.075)
+modulate = Color(0.82, 0.70, 0.48, 0.72)
 texture = ExtResource("9")
 
 [node name="BoardView" parent="." instance=ExtResource("2")]

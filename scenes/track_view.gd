@@ -5,10 +5,10 @@ extends Path2D
 
 const TRACK_WIDTH := 48.0
 const EDGE_WIDTH := 14.0
-const TRACK_COLOR := Color(0.78, 0.62, 0.36)
-const EDGE_COLOR := Color(0.18, 0.12, 0.20)
-const CENTER_COLOR := Color(0.98, 0.78, 0.30, 0.55)
-const START_COLOR := Color(0.28, 0.88, 0.78)
+const TRACK_COLOR := Color(0.47, 0.34, 0.30)
+const EDGE_COLOR := Color(0.07, 0.06, 0.13)
+const CENTER_COLOR := Color(0.93, 0.69, 0.35, 0.62)
+const START_COLOR := Color(0.90, 0.72, 0.42)
 
 @export var draw_track := true
 @export var route_color := TRACK_COLOR
