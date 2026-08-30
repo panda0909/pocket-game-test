@@ -156,6 +156,7 @@ func _ready() -> void:
 	_board_view = _main.get_node("BoardView")
 	var start_button: Button = _hud.get_node("StartButton")
 	var summon_button: Button = _hud.get_node("SummonButton")
+	var salvage_button: Button = _hud.get_node("SalvageButton")
 	var ex_button: Button = _hud.get_node("ExButton")
 	await get_tree().process_frame
 
@@ -170,7 +171,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_mouse(Vector2(360, 905), false)
 	var started: bool = await _await_until(func(): return _main._running, UI_TIMEOUT_MS)
-	_check("點擊開始鈕可開局", started and summon_button.visible and _board_view.visible)
+	_check("點擊開始鈕可開局",
+		started and summon_button.visible and salvage_button.visible and _board_view.visible)
 	var all_generated_assets_loaded := true
 	for path in GENERATED_ASSETS:
 		all_generated_assets_loaded = all_generated_assets_loaded and ResourceLoader.exists(path)
@@ -200,6 +202,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check("召喚可鋪滿棋盤（%d 格）" % Board.cell_count(),
 		_main._board.occupied_indices().size() == Board.cell_count())
+	_check("盤面全滿時鎖定召喚按鈕",
+		summon_button.disabled and summon_button.text == "盤面已滿")
 	_check("有守衛時 EX 按鈕可用", ex_button.visible and not ex_button.disabled)
 	_hud.ex_requested.emit()
 	await get_tree().process_frame
@@ -248,6 +252,27 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check("棋盤滿了不會再召喚",
 		_main._board.occupied_indices().size() == Board.cell_count())
+
+	# 固定成每種職業各一隻一階與二階，驗證滿盤、無合成時可以清倉脫離死局。
+	_main._board.clear_all()
+	_board_view.clear_all()
+	for i in Board.cell_count():
+		var fixed_kind := i % 8
+		var fixed_tier := 1 if i < 8 else 2
+		_main._board.place(i, fixed_kind, fixed_tier)
+		_board_view.add_unit(i, fixed_kind, fixed_tier)
+	_main._refresh_hud()
+	_board_view.select_unit(0)
+	await get_tree().process_frame
+	var gold_before_salvage: int = _main._economy.gold
+	_check("滿盤無合成時可選取清倉",
+		_main._board.is_full() and not _main._board.has_merge_available()
+		and not salvage_button.disabled and salvage_button.text == "清倉 +12")
+	_hud.salvage_requested.emit()
+	await get_tree().process_frame
+	_check("清倉會移除選中守衛並退款",
+		_main._board.is_empty(0)
+		and _main._economy.gold == gold_before_salvage + Economy.salvage_refund(1))
 
 	# 整合測試固定成同職業，驗證一至五階的正確合成規則，不受隨機召喚結果影響。
 	_main._board.place(0, UnitStats.Kind.BULL, 1)

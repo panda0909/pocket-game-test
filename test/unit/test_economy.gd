@@ -50,6 +50,11 @@ func test_cannot_afford_when_gold_below_cost() -> void:
 	economy.gold = 20
 	assert_true(economy.can_afford_summon())
 
+func test_salvage_refund_grows_with_tier() -> void:
+	assert_eq(Economy.salvage_refund(1), 12)
+	assert_eq(Economy.salvage_refund(2), 24)
+	assert_gt(Economy.salvage_refund(6), Economy.salvage_refund(5))
+
 func test_rewards_start_small() -> void:
 	assert_eq(Economy.kill_reward(1), 2)
 	assert_eq(Economy.wave_reward(1), 15)

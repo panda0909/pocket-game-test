@@ -4,6 +4,7 @@ extends CanvasLayer
 
 signal start_game
 signal summon_requested
+signal salvage_requested
 signal speed_toggled
 signal ex_requested
 
@@ -17,6 +18,7 @@ const RESTART_DELAY := 1.0
 @onready var _best_label: Label = $BestLabel
 @onready var _start_button: Button = $StartButton
 @onready var _summon_button: Button = $SummonButton
+@onready var _salvage_button: Button = $SalvageButton
 @onready var _speed_button: Button = $SpeedButton
 @onready var _ex_button: Button = $ExButton
 @onready var _battle_icons: Array[Control] = [
@@ -27,6 +29,7 @@ const RESTART_DELAY := 1.0
 func _ready() -> void:
 	_start_button.pressed.connect(func(): start_game.emit())
 	_summon_button.pressed.connect(func(): summon_requested.emit())
+	_salvage_button.pressed.connect(func(): salvage_requested.emit())
 	_speed_button.pressed.connect(func(): speed_toggled.emit())
 	_ex_button.pressed.connect(func(): ex_requested.emit())
 
@@ -42,6 +45,7 @@ func show_title(best_wave: int) -> void:
 	_start_button.show()
 	_stats_label.hide()
 	_summon_button.hide()
+	_salvage_button.hide()
 	_speed_button.hide()
 	_ex_button.hide()
 
@@ -53,6 +57,7 @@ func hide_title() -> void:
 	_start_button.hide()
 	_stats_label.show()
 	_summon_button.show()
+	_salvage_button.show()
 	_speed_button.show()
 	_ex_button.show()
 
@@ -76,9 +81,25 @@ func update_speed_button(multiplier: float) -> void:
 	_speed_button.text = "×%d" % int(multiplier)
 
 
-func update_summon_button(cost: int, affordable: bool) -> void:
+func update_summon_button(cost: int, affordable: bool, board_full: bool = false) -> void:
+	if board_full:
+		_summon_button.text = "盤面已滿"
+		_summon_button.disabled = true
+		return
 	_summon_button.text = "買入守衛 · %d 資金" % cost
 	_summon_button.disabled = not affordable
+
+
+func update_salvage_button(has_selection: bool, refund: int, available: bool) -> void:
+	if not available:
+		_salvage_button.text = "清倉"
+		_salvage_button.disabled = true
+	elif not has_selection:
+		_salvage_button.text = "選角清倉"
+		_salvage_button.disabled = true
+	else:
+		_salvage_button.text = "清倉 +%d" % refund
+		_salvage_button.disabled = false
 
 
 func update_ex_button(seconds_left: float, has_units: bool) -> void:
@@ -112,6 +133,7 @@ func show_game_over(wave: int, best_wave: int, is_record: bool) -> void:
 	_best_label.show()
 	_stats_label.hide()
 	_summon_button.hide()
+	_salvage_button.hide()
 	_speed_button.hide()
 	_ex_button.hide()
 	# 等一秒再顯示按鈕，避免玩家手還在點就誤觸重來

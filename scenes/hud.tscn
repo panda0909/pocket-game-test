@@ -154,27 +154,36 @@ text = "開始"
 theme = ExtResource("2")
 offset_left = 24.0
 offset_top = 1090.0
-offset_right = 160.0
+offset_right = 148.0
 offset_bottom = 1200.0
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 24
 text = "EX 技能"
+
+[node name="SalvageButton" type="Button" parent="."]
+theme = ExtResource("2")
+offset_left = 156.0
+offset_top = 1090.0
+offset_right = 320.0
+offset_bottom = 1200.0
+theme_override_font_sizes/font_size = 22
+text = "選角清倉"
 
 [node name="SummonButton" type="Button" parent="."]
 theme = ExtResource("2")
-offset_left = 176.0
+offset_left = 328.0
 offset_top = 1090.0
-offset_right = 500.0
+offset_right = 540.0
 offset_bottom = 1200.0
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 28
 text = "買入守衛 · 20 資金"
 
 [node name="SpeedButton" type="Button" parent="."]
 theme = ExtResource("2")
-offset_left = 520.0
+offset_left = 548.0
 offset_top = 1090.0
 offset_right = 696.0
 offset_bottom = 1200.0
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 32
 text = "×1"
 
 [node name="SummonIcon" type="TextureRect" parent="."]

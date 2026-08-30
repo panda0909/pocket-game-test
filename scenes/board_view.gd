@@ -7,6 +7,8 @@ extends Node2D
 signal unit_dropped(from_index: int, to_index: int)
 ## 玩家直接點空白格時發出，由 Main 以目前召喚費用買入並放到該格。
 signal empty_cell_selected(index: int)
+## 玩家點選已佔用格時發出，供清倉流程顯示選取中的守衛。
+signal unit_selected(index: int)
 ## 把底下所有守衛的開火事件轉給 Main
 signal unit_fired(origin: Vector2, target: Node2D, damage: float, splash: float, color: Color, kind: int)
 signal unit_ex_fired(origin: Vector2, kind: int, tier: int)
@@ -29,6 +31,7 @@ var _drag_origin := Vector2.ZERO
 var _press_index := -1
 var _press_position := Vector2.ZERO
 var _press_moved := false
+var _selected_index := -1
 ## 波次進行中才讓守衛索敵。新加入的守衛會沿用目前狀態。
 var _units_active := false
 var _cell_style: StyleBoxFlat = null
@@ -49,6 +52,8 @@ func _draw() -> void:
 		var center := Board.cell_center(i)
 		var rect := Rect2(center - Vector2(size, size) * 0.5, Vector2(size, size))
 		draw_style_box(_cell_style, rect)
+		if i == _selected_index and _views.has(i):
+			draw_rect(rect.grow(4.0), Color(1.0, 0.78, 0.28, 0.98), false, 4.0)
 
 
 # --- 顯示 ---
@@ -90,6 +95,8 @@ func set_units_active(value: bool) -> void:
 func remove_unit(index: int) -> void:
 	if not _views.has(index):
 		return
+	if _selected_index == index:
+		clear_selection()
 	_views[index].queue_free()
 	_views.erase(index)
 
@@ -97,6 +104,7 @@ func remove_unit(index: int) -> void:
 func move_unit(from_index: int, to_index: int) -> void:
 	if not _views.has(from_index):
 		return
+	clear_selection()
 	var view = _views[from_index]
 	_views.erase(from_index)
 	_views[to_index] = view
@@ -108,6 +116,7 @@ func swap_units(index_a: int, index_b: int) -> void:
 	var view_b = _views.get(index_b)
 	if view_a == null or view_b == null:
 		return
+	clear_selection()
 	_views[index_a] = view_b
 	_views[index_b] = view_a
 	view_a.position = Board.cell_center(index_b)
@@ -135,8 +144,29 @@ func get_view(index: int):
 	return _views.get(index)
 
 
+func selected_index() -> int:
+	return _selected_index
+
+
+func select_unit(index: int) -> void:
+	if not _views.has(index):
+		clear_selection()
+		return
+	_selected_index = index
+	queue_redraw()
+	unit_selected.emit(index)
+
+
+func clear_selection() -> void:
+	if _selected_index == -1:
+		return
+	_selected_index = -1
+	queue_redraw()
+
+
 func clear_all() -> void:
 	_reset_drag_visual()
+	clear_selection()
 	for index in _views.keys():
 		_views[index].queue_free()
 	_views.clear()
@@ -205,6 +235,7 @@ func _end_drag(pos: Vector2) -> void:
 		return
 	var from_index := _drag_index
 	var to_index := Board.index_at_position(pos)
+	var was_click := not _press_moved and to_index == from_index
 	# 先把畫面歸位再發訊號。Main 收到後可能會搬動或銷毀這些節點，
 	# 順序反過來的話會動到已經不存在的東西。
 	_reset_drag_visual()
@@ -212,6 +243,10 @@ func _end_drag(pos: Vector2) -> void:
 		_reset_press()
 		return
 	_reset_press()
+	if was_click:
+		select_unit(from_index)
+		return
+	clear_selection()
 	unit_dropped.emit(from_index, to_index)
 
 

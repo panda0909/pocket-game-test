@@ -76,10 +76,12 @@ func _ready() -> void:
 	_load_best_wave()
 	_hud.start_game.connect(new_game)
 	_hud.summon_requested.connect(_on_summon_requested)
+	_hud.salvage_requested.connect(_on_salvage_requested)
 	_hud.speed_toggled.connect(_on_speed_toggled)
 	_hud.ex_requested.connect(_on_ex_requested)
 	_board_view.unit_dropped.connect(_on_unit_dropped)
 	_board_view.empty_cell_selected.connect(_on_empty_cell_selected)
+	_board_view.unit_selected.connect(_on_unit_selected)
 	_board_view.unit_fired.connect(_on_unit_fired)
 	_board_view.unit_ex_fired.connect(_on_unit_ex_fired)
 	_spawn_timer.timeout.connect(_on_spawn_timer_timeout)
@@ -132,9 +134,16 @@ func _clear_field() -> void:
 
 
 func _refresh_hud() -> void:
+	var board_full := _board.is_full()
+	var merge_available := _board.has_merge_available()
+	var selected_index: int = _board_view.selected_index()
+	var selected_unit = _board.get_unit(selected_index)
+	var has_selection := selected_unit != null
+	var refund := Economy.salvage_refund(selected_unit["tier"]) if has_selection else 0
 	_hud.update_stats(maxi(_wave, 1), _economy.lives, _economy.gold,
 		maxf(_wave_time_left, 0.0))
-	_hud.update_summon_button(_economy.summon_cost(), _economy.can_afford_summon())
+	_hud.update_summon_button(_economy.summon_cost(), _economy.can_afford_summon(), board_full)
+	_hud.update_salvage_button(has_selection, refund, board_full and not merge_available)
 	_hud.update_ex_button(_ex_cooldown_left, not _board.occupied_indices().is_empty())
 
 
@@ -232,7 +241,10 @@ func _game_over() -> void:
 func _on_summon_requested() -> void:
 	var index := _board.first_empty_index()
 	if index == -1:
-		_hud.show_message("沒有空格了，先合成吧")
+		if _board.has_merge_available():
+			_hud.show_message("盤面已滿，先合成可用守衛")
+		else:
+			_hud.show_message("盤面已滿，點選角色後按清倉")
 		return
 	_buy_unit_at(index)
 
@@ -241,6 +253,45 @@ func _on_summon_requested() -> void:
 ## 但會把新角色精準放在玩家點的戰術位置。
 func _on_empty_cell_selected(index: int) -> void:
 	_buy_unit_at(index)
+
+
+func _on_unit_selected(index: int) -> void:
+	var unit = _board.get_unit(index)
+	if unit == null:
+		return
+	if _board.is_full():
+		if _board.has_merge_available():
+			_hud.show_message("已選取 %s Lv%d，拖曳到同職業同階守衛合成" % [
+				UnitStats.display_name(unit["kind"]), unit["tier"]])
+		else:
+			_hud.show_message("已選取 %s Lv%d，按清倉回收 +%d 資金" % [
+				UnitStats.display_name(unit["kind"]), unit["tier"],
+				Economy.salvage_refund(unit["tier"])])
+	_refresh_hud()
+
+
+func _on_salvage_requested() -> void:
+	if not _running:
+		return
+	if not _board.is_full():
+		_hud.show_message("盤面尚有空格，不需要清倉")
+		return
+	if _board.has_merge_available():
+		_hud.show_message("盤面有可合成組合，請先合成")
+		return
+	var index: int = _board_view.selected_index()
+	var unit = _board.get_unit(index)
+	if unit == null:
+		_hud.show_message("請先點選一名守衛")
+		return
+	var refund := Economy.salvage_refund(unit["tier"])
+	var label := "%s Lv%d" % [UnitStats.display_name(unit["kind"]), unit["tier"]]
+	_board.clear_cell(index)
+	_board_view.remove_unit(index)
+	_economy.add_gold(refund)
+	_spawn_burst(Board.cell_center(index), Color(1.0, 0.72, 0.24), 11, 44.0, 5.0, 0.4)
+	_hud.show_message("清倉完成：%s，回收 +%d 資金" % [label, refund])
+	_refresh_hud()
 
 
 func _buy_unit_at(index: int) -> bool:

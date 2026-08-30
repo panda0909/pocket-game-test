@@ -75,6 +75,26 @@ func has_empty() -> bool:
 	return first_empty_index() != -1
 
 
+func is_full() -> bool:
+	return not has_empty()
+
+
+## 滿盤時判斷是否還有任何合法合成，供 HUD 決定要提示合成或開啟清倉。
+func has_merge_available() -> bool:
+	var occupied := occupied_indices()
+	for i in range(occupied.size()):
+		var first = get_unit(occupied[i])
+		for j in range(i + 1, occupied.size()):
+			var second = get_unit(occupied[j])
+			if MergeRules.fusion_kind_for(
+				first["kind"], second["kind"], first["tier"], second["tier"]) != -1:
+				return true
+			if MergeRules.can_merge(
+				first["kind"], second["kind"], first["tier"], second["tier"]):
+				return true
+	return false
+
+
 func place(index: int, kind: int, tier: int) -> void:
 	_cells[index] = {"kind": kind, "tier": tier}
 

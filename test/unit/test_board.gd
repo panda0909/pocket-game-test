@@ -32,6 +32,20 @@ func test_full_board_reports_no_empty() -> void:
 		board.place(i, UnitStats.Kind.BULL, 1)
 	assert_false(board.has_empty())
 	assert_eq(board.first_empty_index(), -1)
+	assert_true(board.is_full())
+
+func test_full_board_with_no_legal_merge_is_detectable() -> void:
+	# 每個職業各放一隻一階與二階：盤面全滿，但沒有同職業同階或六階融合。
+	for i in Board.cell_count():
+		board.place(i, i % 8, 1 if i < 8 else 2)
+	assert_true(board.is_full())
+	assert_false(board.has_merge_available())
+
+func test_full_board_with_legal_merge_is_detectable() -> void:
+	for i in Board.cell_count():
+		board.place(i, UnitStats.Kind.BULL, 1)
+	assert_true(board.is_full())
+	assert_true(board.has_merge_available())
 
 func test_cell_center_matches_layout() -> void:
 	assert_eq(Board.cell_center(0), Board.ORIGIN)

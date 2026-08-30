@@ -24,6 +24,8 @@ const STARTING_LIVES := 20
 const SUMMON_BASE_COST := 20.0
 const SUMMON_WAVE_GROWTH := 1.02
 const SUMMON_WITHIN_WAVE_STEP := 0.05
+## 清倉返還部分投入成本，讓滿盤又沒有可合成組合時仍能繼續遊玩。
+const SALVAGE_REFUND_RATE := 0.60
 
 ## 獎勵同樣等比成長，成長率略高於召喚基準，玩家才感覺得到「越來越有錢」。
 const KILL_REWARD_BASE := 2.0
@@ -60,6 +62,13 @@ func summon_cost() -> int:
 
 func can_afford_summon() -> bool:
 	return gold >= summon_cost()
+
+
+## 回收價用「同階合成投入」估算，不受當前波次召喚加價影響，避免高波次
+## 只因誤召喚就能刷出過高退款；階級越高仍會得到合理的部位價值。
+static func salvage_refund(tier: int) -> int:
+	var safe_tier := maxi(1, tier)
+	return maxi(1, roundi(SUMMON_BASE_COST * pow(2.0, safe_tier - 1) * SALVAGE_REFUND_RATE))
 
 
 func pay_summon() -> void:
