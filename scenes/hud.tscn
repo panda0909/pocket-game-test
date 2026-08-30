@@ -14,6 +14,18 @@ bg_color = Color(0.018, 0.028, 0.075, 0.98)
 border_width_top = 3
 border_color = Color(0.84, 0.60, 0.32, 0.72)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_backdrop"]
+bg_color = Color(0.012, 0.024, 0.075, 0.70)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.72, 0.38, 0.52)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_wave"]
 atlas = ExtResource("3")
 region = Rect2(724, 0, 362, 362)
@@ -101,6 +113,15 @@ texture = SubResource("AtlasTexture_coin")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="TitleBackdrop" type="Panel" parent="."]
+visible = false
+offset_left = 42.0
+offset_top = 210.0
+offset_right = 678.0
+offset_bottom = 840.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_backdrop")
+
 [node name="MissionIcon" type="TextureRect" parent="."]
 visible = false
 offset_left = 592.0
@@ -118,6 +139,8 @@ offset_top = 238.0
 offset_right = 720.0
 offset_bottom = 270.0
 theme_override_colors/font_color = Color(0.95, 0.72, 0.38, 1)
+theme_override_colors/font_outline_color = Color(0.01, 0.015, 0.04, 0.95)
+theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 34
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -128,6 +151,8 @@ theme = ExtResource("2")
 offset_top = 280.0
 offset_right = 720.0
 offset_bottom = 520.0
+theme_override_colors/font_outline_color = Color(0.01, 0.015, 0.04, 0.98)
+theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 54
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -139,6 +164,8 @@ theme = ExtResource("2")
 offset_top = 550.0
 offset_right = 720.0
 offset_bottom = 605.0
+theme_override_colors/font_outline_color = Color(0.01, 0.015, 0.04, 0.98)
+theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 text = "最高波次 0"
@@ -150,6 +177,8 @@ offset_top = 635.0
 offset_right = 720.0
 offset_bottom = 685.0
 theme_override_colors/font_color = Color(0.95, 0.78, 0.42, 1)
+theme_override_colors/font_outline_color = Color(0.01, 0.015, 0.04, 0.98)
+theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 vertical_alignment = 1

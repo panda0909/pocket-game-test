@@ -28,12 +28,12 @@ func _ready() -> void:
 		if capture_mode == "tiers":
 			# 展示每種原角色的四段裝備成長，確認圖集裁切與去背都可用。
 			main._board.clear_all()
-			main.get_node("BoardView").clear_all()
+			main.get_node("Playfield/BoardView").clear_all()
 			for i in Board.cell_count():
 				var kind := i % 3
 				var tier := (i % 4) + 1
 				main._board.place(i, kind, tier)
-				main.get_node("BoardView").add_unit(i, kind, tier)
+				main.get_node("Playfield/BoardView").add_unit(i, kind, tier)
 		else:
 			for i in mini(8, Board.cell_count()):
 				main.get_node("HUD").summon_requested.emit()
@@ -45,7 +45,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if capture_mode == "game" or capture_mode == "tiers":
 		print("截圖狀態 wave=%d time=%.2f effects=%d enemies=%d" % [
-			main._wave, main._wave_time_left, main.get_node("Effects").get_child_count(),
+				main._wave, main._wave_time_left, main.get_node("Playfield/Effects").get_child_count(),
 			get_tree().get_nodes_in_group("enemy").size()
 		])
 

@@ -13,8 +13,11 @@ signal route_next_requested
 const RESTART_DELAY := 1.0
 
 @onready var _stats_label: Label = $StatsLabel
+@onready var _top_bar: Panel = $TopBar
+@onready var _bottom_bar: Panel = $BottomBar
 ## 大字，只用於標題與結束畫面（畫面中央，會蓋住棋盤）
 @onready var _message: Label = $Message
+@onready var _title_backdrop: Panel = $TitleBackdrop
 ## 細長橫幅，用於遊戲中的波次提示。位置在棋盤上方，不會擋住守衛。
 @onready var _wave_banner: Label = $WaveBanner
 @onready var _best_label: Label = $BestLabel
@@ -42,10 +45,13 @@ func _ready() -> void:
 
 
 func show_title(best_wave: int) -> void:
+	_top_bar.hide()
+	_bottom_bar.hide()
 	_set_battle_icons_visible(false)
 	_wave_banner.hide()
 	_message.text = "口袋股市守衛\n熊市來襲"
 	_message.show()
+	_title_backdrop.show()
 	_best_label.text = "最高波次 %d" % best_wave
 	_best_label.show()
 	_route_label.show()
@@ -61,8 +67,11 @@ func show_title(best_wave: int) -> void:
 
 
 func hide_title() -> void:
+	_top_bar.show()
+	_bottom_bar.show()
 	_set_battle_icons_visible(true)
 	_message.hide()
+	_title_backdrop.hide()
 	_best_label.hide()
 	_start_button.hide()
 	_route_label.hide()
@@ -140,6 +149,8 @@ func hide_message() -> void:
 
 
 func show_game_over(wave: int, best_wave: int, is_record: bool) -> void:
+	_top_bar.hide()
+	_bottom_bar.hide()
 	_set_battle_icons_visible(false)
 	_wave_banner.hide()
 	if is_record:
@@ -147,6 +158,7 @@ func show_game_over(wave: int, best_wave: int, is_record: bool) -> void:
 	else:
 		_message.text = "金庫失守\n撐到第 %d 波" % wave
 	_message.show()
+	_title_backdrop.show()
 	_best_label.text = "最高波次 %d" % best_wave
 	_best_label.show()
 	_stats_label.hide()

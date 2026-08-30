@@ -83,14 +83,14 @@ func _uses_atlas_frame(node: Node, atlas_path: String, frame_index: int,
 
 
 func _effects_include(atlas_path: String) -> bool:
-	for child in _main.get_node("Effects").get_children():
+	for child in _main.get_node("Playfield/Effects").get_children():
 		if child is Sprite2D and _uses_atlas(child, atlas_path):
 			return true
 	return false
 
 
 func _effects_include_script(script_path: String) -> bool:
-	for child in _main.get_node("Effects").get_children():
+	for child in _main.get_node("Playfield/Effects").get_children():
 		var script = child.get_script()
 		if script != null and script.resource_path == script_path:
 			return true
@@ -159,7 +159,7 @@ func _ready() -> void:
 	_main = load("res://scenes/main.tscn").instantiate()
 	add_child(_main)
 	_hud = _main.get_node("HUD")
-	_board_view = _main.get_node("BoardView")
+	_board_view = _main.get_node("Playfield/BoardView")
 	var start_button: Button = _hud.get_node("StartButton")
 	var summon_button: Button = _hud.get_node("SummonButton")
 	var salvage_button: Button = _hud.get_node("SalvageButton")
@@ -174,7 +174,7 @@ func _ready() -> void:
 	_check("開場顯示標題與開始鈕",
 		start_button.visible and route_label.visible and route_next_button.visible
 		and not summon_button.visible and not _board_view.visible)
-	_check("入口使用角色大集合封面", _main.get_node("BattlefieldArt").texture.resource_path == COVER_ASSET)
+	_check("入口使用角色大集合封面", _main.get_node("Playfield/BattlefieldArt").texture.resource_path == COVER_ASSET)
 	# Headless 執行沒有實體視窗座標，直接走 Button 的 pressed 訊號；
 	# 真實視窗的手動點擊仍由遊戲本身的 _unhandled_input 路徑處理。
 	route_next_button.pressed.emit()
@@ -199,12 +199,12 @@ func _ready() -> void:
 	for path in TIER_ATTACK_ASSETS:
 		all_tier_attack_assets_loaded = all_tier_attack_assets_loaded and ResourceLoader.exists(path)
 	_check("牛、蜥蜴、恐龍四階攻擊圖集可載入", all_tier_attack_assets_loaded)
-	_check("戰場背景已接入", _main.get_node("BattlefieldArt").texture.resource_path == GENERATED_ASSETS[0])
-	_check("T 型地圖預覽已接入", _main.get_node("TacticalMapPreview").texture.resource_path == GENERATED_ASSETS[1])
-	_check("中央匯流核心已接入", _main.get_node("JunctionCore").texture.resource_path == GENERATED_ASSETS[2])
+	_check("戰場背景已接入", _main.get_node("Playfield/BattlefieldArt").texture.resource_path == GENERATED_ASSETS[0])
+	_check("T 型地圖預覽已接入", _main.get_node("Playfield/TacticalMapPreview").texture.resource_path == GENERATED_ASSETS[1])
+	_check("中央匯流核心已接入", _main.get_node("Playfield/JunctionCore").texture.resource_path == GENERATED_ASSETS[2])
 	_check("HUD 圖示圖集已接入", _uses_atlas(_hud.get_node("WaveIcon"), GENERATED_ASSETS[7]))
 
-	var effects: Node2D = _main.get_node("Effects")
+	var effects: Node2D = _main.get_node("Playfield/Effects")
 
 	# 給足金幣，鋪滿棋盤讓波次能快速清掉
 	_main._economy.gold = 100000
@@ -405,7 +405,7 @@ func _ready() -> void:
 	_check("撐過第一波沒有掉生命", _main._economy.lives == Economy.STARTING_LIVES)
 
 	# 傷害數字要跳得出來，而且不能無上限累積
-	var numbers: Node2D = _main.get_node("DamageNumbers")
+	var numbers: Node2D = _main.get_node("Playfield/DamageNumbers")
 	var saw_numbers: bool = await _await_until(
 		func(): return numbers.get_child_count() > 0, UI_TIMEOUT_MS)
 	_check("守衛打中敵人會跳傷害數字", saw_numbers)
@@ -419,9 +419,9 @@ func _ready() -> void:
 	_check("結束後停止流程", not _main._running)
 	_check("結束後清空場上敵人", get_tree().get_nodes_in_group("enemy").is_empty())
 	_check("結束後清空投射物、特效與傷害數字",
-		_main.get_node("Projectiles").get_child_count() == 0
+		_main.get_node("Playfield/Projectiles").get_child_count() == 0
 		and effects.get_child_count() == 0
-		and _main.get_node("DamageNumbers").get_child_count() == 0)
+		and _main.get_node("Playfield/DamageNumbers").get_child_count() == 0)
 	_check("結束後把時間倍率復原", is_equal_approx(Engine.time_scale, 1.0))
 
 	var restart_shown: bool = await _await_until(

@@ -17,6 +17,7 @@ const ATTACK_EFFECTS_TEXTURE := preload("res://assets/generated/stock_combat_eff
 const VAULT_STATES_TEXTURE := preload("res://assets/generated/stock_vault_states_sheet.png")
 
 const SAVE_PATH := "user://best_wave.save"
+const BASE_VIEWPORT_SIZE := Vector2(720.0, 1280.0)
 
 ## 每一波固定這麼久，時間到就推進下一波——不管上一波清完沒有。
 ## 壓力來自「清不掉就會疊」，這也是遊戲能快速走到三位數波次的原因。
@@ -79,17 +80,19 @@ var _route_index := Board.Route.CROSS
 var _vault_flash_tween: Tween = null
 var _vault_shake_tween: Tween = null
 
-@onready var _board_view: Node2D = $BoardView
+@onready var _board_view: Node2D = $Playfield/BoardView
 @onready var _hud: CanvasLayer = $HUD
-@onready var _track_left: Path2D = $Tracks/TrackLeft
-@onready var _track_right: Path2D = $Tracks/TrackRight
-@onready var _projectiles: Node2D = $Projectiles
-@onready var _effects: Node2D = $Effects
-@onready var _damage_numbers: Node2D = $DamageNumbers
-@onready var _vault: Sprite2D = $Vault
-@onready var _battlefield_art: Sprite2D = $BattlefieldArt
-@onready var _tactical_map_preview: Sprite2D = $TacticalMapPreview
-@onready var _junction_core: Sprite2D = $JunctionCore
+@onready var _playfield: Node2D = $Playfield
+@onready var _tracks: Node2D = $Playfield/Tracks
+@onready var _track_left: Path2D = $Playfield/Tracks/TrackLeft
+@onready var _track_right: Path2D = $Playfield/Tracks/TrackRight
+@onready var _projectiles: Node2D = $Playfield/Projectiles
+@onready var _effects: Node2D = $Playfield/Effects
+@onready var _damage_numbers: Node2D = $Playfield/DamageNumbers
+@onready var _vault: Sprite2D = $Playfield/Vault
+@onready var _battlefield_art: Sprite2D = $Playfield/BattlefieldArt
+@onready var _tactical_map_preview: Sprite2D = $Playfield/TacticalMapPreview
+@onready var _junction_core: Sprite2D = $Playfield/JunctionCore
 @onready var _spawn_timer: Timer = $SpawnTimer
 
 
@@ -111,14 +114,19 @@ func _ready() -> void:
 	_board_view.unit_fired.connect(_on_unit_fired)
 	_board_view.unit_ex_fired.connect(_on_unit_ex_fired)
 	_spawn_timer.timeout.connect(_on_spawn_timer_timeout)
+	get_viewport().size_changed.connect(_layout_for_viewport)
+	# expand 模式會讓瀏覽器 viewport 變寬；把固定 720×1280 的戰場與 HUD
+	# 一起置中，兩側交給背景填滿，不讓棋盤貼在畫面左邊。
+	_layout_for_viewport()
 	# 以程式常數再指定一次，確保換場景或匯出後不會退回舊的 inspector 資產。
 	_battlefield_art.texture = COVER_TEXTURE
+	_battlefield_art.scale = Vector2(0.84, 0.84)
 	_tactical_map_preview.texture = T_PATH_TEXTURE
 	_junction_core.texture = JUNCTION_CORE_TEXTURE
 	_apply_route_layout()
 	# 戰場只在遊戲中顯示，否則路徑與金庫會疊到標題畫面。
 	_board_view.hide()
-	$Tracks.hide()
+	_tracks.hide()
 	_vault.hide()
 	_battlefield_art.show()
 	_junction_core.hide()
@@ -127,15 +135,26 @@ func _ready() -> void:
 	_hud.show_title(_best_wave)
 
 
+func _layout_for_viewport() -> void:
+	var viewport_size := get_viewport_rect().size
+	var offset := Vector2(
+		maxf((viewport_size.x - BASE_VIEWPORT_SIZE.x) * 0.5, 0.0),
+		maxf((viewport_size.y - BASE_VIEWPORT_SIZE.y) * 0.5, 0.0)
+	)
+	_playfield.position = offset
+	_hud.offset = offset
+
+
 func new_game() -> void:
 	_clear_field()
 	_apply_route_layout()
 	_board.clear_all()
 	_board_view.clear_all()
 	_board_view.show()
-	$Tracks.show()
+	_tracks.show()
 	_vault.show()
 	_battlefield_art.texture = BATTLEFIELD_TEXTURE
+	_battlefield_art.scale = Vector2(0.765, 0.765)
 	_battlefield_art.show()
 	_junction_core.show()
 	_tactical_map_preview.hide()
@@ -286,12 +305,13 @@ func _game_over() -> void:
 	_board_view.set_units_active(false)
 	# 結束畫面的大字在畫面中央，戰場留著會被蓋住一半，不如收起來。
 	_board_view.hide()
-	$Tracks.hide()
+	_tracks.hide()
 	_vault.hide()
 	_battlefield_art.hide()
 	_junction_core.hide()
 	_tactical_map_preview.hide()
 	_battlefield_art.texture = COVER_TEXTURE
+	_battlefield_art.scale = Vector2(0.84, 0.84)
 	_battlefield_art.show()
 	_clear_field()
 	Engine.time_scale = 1.0
