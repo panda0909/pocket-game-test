@@ -25,6 +25,12 @@ func test_zombie_bears_appear_from_wave_eight() -> void:
 	assert_false(WaveTable.composition(7).has(WaveTable.EnemyKind.ZOMBIE_BEAR))
 	assert_true(WaveTable.composition(8).has(WaveTable.EnemyKind.ZOMBIE_BEAR))
 
+func test_bats_appear_from_wave_twenty() -> void:
+	assert_false(WaveTable.composition(19).has(WaveTable.EnemyKind.BAT))
+	assert_true(WaveTable.composition(20).has(WaveTable.EnemyKind.BAT))
+	assert_true(WaveTable.is_airborne(WaveTable.EnemyKind.BAT))
+	assert_false(WaveTable.is_airborne(WaveTable.EnemyKind.BEAR))
+
 func test_boss_appears_every_five_waves() -> void:
 	assert_false(WaveTable.composition(4).has(WaveTable.EnemyKind.BOSS_BEAR))
 	assert_true(WaveTable.composition(5).has(WaveTable.EnemyKind.BOSS_BEAR))
@@ -80,3 +86,5 @@ func test_texture_paths_exist() -> void:
 			WaveTable.EnemyKind.BOSS_BEAR]:
 		var path := WaveTable.texture_path(kind)
 		assert_true(ResourceLoader.exists(path), "找不到貼圖 %s" % path)
+	var bat_path := WaveTable.texture_path(WaveTable.EnemyKind.BAT)
+	assert_true(ResourceLoader.exists(bat_path), "找不到蝙蝠貼圖 %s" % bat_path)

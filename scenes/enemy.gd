@@ -30,6 +30,7 @@ const FLASH_TIME := 0.14
 const DAMAGE_WINDOW := 0.35
 
 const ENEMY_SHEET := preload("res://assets/generated/stock_bear_enemy_sheet.png")
+const BAT_TEXTURE := preload("res://assets/generated/stock_bat_enemy.png")
 const BOSS_SHIELD_SHEET := preload("res://assets/generated/stock_boss_shield_states.png")
 const SHIELD_FRAME_COUNT := 4
 
@@ -72,7 +73,12 @@ func setup(kind: int, wave: int) -> void:
 	_reward = Economy.kill_reward(wave)
 	# setup 可能在 _ready 之前被呼叫，所以直接取節點而非依賴 @onready
 	var sprite: Sprite2D = get_node("Sprite2D")
-	sprite.texture = _sheet_frame(ENEMY_SHEET, kind, 7)
+	if WaveTable.uses_sheet(kind):
+		sprite.texture = _sheet_frame(ENEMY_SHEET, kind, 7)
+	else:
+		sprite.texture = BAT_TEXTURE
+		sprite.scale = Vector2(0.10, 0.10) if WaveTable.is_airborne(kind) else Vector2(0.15, 0.15)
+	sprite.z_index = 1 if WaveTable.is_airborne(kind) else 0
 	var shield: Sprite2D = get_node("ShieldSprite")
 	shield.visible = kind == WaveTable.EnemyKind.BOSS_BEAR
 	if shield.visible:
@@ -98,8 +104,9 @@ func _physics_process(delta: float) -> void:
 
 func _animate_walk() -> void:
 	var phase := _lifetime * BOB_SPEED
-	_sprite.position.y = sin(phase) * BOB_HEIGHT
-	_sprite.rotation = sin(phase * 0.5) * TILT
+	var flight_height := -24.0 if WaveTable.is_airborne(_kind) else 0.0
+	_sprite.position.y = flight_height + sin(phase) * (BOB_HEIGHT * (2.0 if WaveTable.is_airborne(_kind) else 1.0))
+	_sprite.rotation = sin(phase * 0.5) * (TILT * (1.8 if WaveTable.is_airborne(_kind) else 1.0))
 
 
 func take_damage(amount: float, color: Color = Color.WHITE) -> void:

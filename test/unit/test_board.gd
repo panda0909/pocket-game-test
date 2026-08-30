@@ -82,11 +82,18 @@ func test_drop_onto_different_tier_swaps() -> void:
 
 func test_drop_onto_same_tier_merges() -> void:
 	board.place(0, UnitStats.Kind.BULL, 2)
-	board.place(1, UnitStats.Kind.GECKO, 2)
+	board.place(1, UnitStats.Kind.BULL, 2)
 	var result := board.resolve_drop(0, 1, _rng())
 	assert_eq(result["action"], "merge")
 	assert_true(board.is_empty(0), "來源格應該清空")
 	assert_eq(board.get_unit(1)["tier"], 3, "目標格升為三階")
+	assert_eq(board.get_unit(1)["kind"], UnitStats.Kind.BULL, "同職業合成後仍維持原職業")
+
+func test_different_kinds_same_low_tier_swap_instead_of_merge() -> void:
+	board.place(0, UnitStats.Kind.BULL, 2)
+	board.place(1, UnitStats.Kind.GECKO, 2)
+	var result := board.resolve_drop(0, 1, _rng())
+	assert_eq(result["action"], "swap", "五階以前不同職業不可合成")
 
 func test_same_max_tier_units_swap_instead_of_merging() -> void:
 	board.place(0, UnitStats.Kind.BULL, UnitStats.MAX_TIER)
@@ -95,13 +102,13 @@ func test_same_max_tier_units_swap_instead_of_merging() -> void:
 	assert_eq(result["action"], "swap", "同種類滿階不能再融合，應改為交換")
 
 func test_different_max_tier_units_fuse_into_duo_shooter() -> void:
-	board.place(0, UnitStats.Kind.BULL, UnitStats.MAX_TIER)
-	board.place(1, UnitStats.Kind.GECKO, UnitStats.MAX_TIER)
+	board.place(0, UnitStats.Kind.BULL, UnitStats.FUSION_UNLOCK_TIER)
+	board.place(1, UnitStats.Kind.GECKO, UnitStats.FUSION_UNLOCK_TIER)
 	var result := board.resolve_drop(0, 1, _rng())
 	assert_eq(result["action"], "merge")
 	assert_true(result["fusion"])
 	assert_eq(result["kind"], UnitStats.Kind.DUO_SHOOTER)
-	assert_eq(result["tier"], UnitStats.MAX_TIER)
+	assert_eq(result["tier"], UnitStats.FUSION_UNLOCK_TIER)
 	assert_true(board.is_empty(0), "融合來源格應該清空")
 	assert_eq(board.get_unit(1)["kind"], UnitStats.Kind.DUO_SHOOTER)
 
@@ -109,7 +116,7 @@ func test_final_unit_against_lower_tier_does_not_fuse() -> void:
 	board.place(0, UnitStats.Kind.BULL, UnitStats.MAX_TIER)
 	board.place(1, UnitStats.Kind.GECKO, UnitStats.MAX_TIER - 1)
 	var result := board.resolve_drop(0, 1, _rng())
-	assert_eq(result["action"], "swap", "只有兩邊都滿階才可融合")
+	assert_eq(result["action"], "swap", "兩邊階級不同不可融合")
 
 func test_drop_onto_self_does_nothing() -> void:
 	board.place(0, UnitStats.Kind.BULL, 1)

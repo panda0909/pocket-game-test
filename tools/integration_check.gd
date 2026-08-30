@@ -24,6 +24,19 @@ const GENERATED_ASSETS := [
 	"res://assets/generated/stock_market_ui_sheet.png",
 	"res://assets/generated/stock_vault_states_sheet.png",
 	"res://assets/generated/stock_boss_shield_states.png",
+	"res://assets/generated/stock_bat_enemy.png",
+]
+const NEW_CHARACTER_ASSETS := [
+	"res://assets/characters/new/trend_fox.png",
+	"res://assets/characters/new/trend_fox_attack.png",
+	"res://assets/characters/new/quant_rabbit.png",
+	"res://assets/characters/new/quant_rabbit_attack.png",
+	"res://assets/characters/new/radar_owl.png",
+	"res://assets/characters/new/radar_owl_attack.png",
+	"res://assets/characters/new/turret_rhino.png",
+	"res://assets/characters/new/turret_rhino_attack.png",
+	"res://assets/characters/new/arbitrage_octopus.png",
+	"res://assets/characters/new/arbitrage_octopus_attack.png",
 ]
 
 var _failures := 0
@@ -157,6 +170,10 @@ func _ready() -> void:
 	for path in GENERATED_ASSETS:
 		all_generated_assets_loaded = all_generated_assets_loaded and ResourceLoader.exists(path)
 	_check("全部生成素材可載入", all_generated_assets_loaded)
+	var all_new_character_assets_loaded := true
+	for path in NEW_CHARACTER_ASSETS:
+		all_new_character_assets_loaded = all_new_character_assets_loaded and ResourceLoader.exists(path)
+	_check("五種新職業待機／攻擊素材可載入", all_new_character_assets_loaded)
 	_check("戰場背景已接入", _main.get_node("BattlefieldArt").texture.resource_path == GENERATED_ASSETS[0])
 	_check("T 型地圖預覽已接入", _main.get_node("TacticalMapPreview").texture.resource_path == GENERATED_ASSETS[1])
 	_check("中央匯流核心已接入", _main.get_node("JunctionCore").texture.resource_path == GENERATED_ASSETS[2])
@@ -183,10 +200,12 @@ func _ready() -> void:
 	# 暫停這一隻的索敵，讓待機圖檢查不會被連續普通攻擊打斷。
 	first_view.set_active(false)
 	await _await_until(func(): return not first_view._is_attacking, UI_TIMEOUT_MS)
-	_check("守衛使用角色階級圖集", _uses_atlas(first_view.get_node("Sprite2D"),
-		"res://assets/characters/tiers/"))
-	first_view.set_active(true)
 	var first_kind: int = first_view.kind
+	var first_idle_ok: bool = _uses_atlas(first_view.get_node("Sprite2D"),
+		"res://assets/characters/tiers/") if not UnitStats.tier_texture_path(first_kind).is_empty() \
+		else first_view.get_node("Sprite2D").texture.resource_path == UnitStats.texture_path(first_kind)
+	_check("守衛使用角色階級或專用待機圖", first_idle_ok)
+	first_view.set_active(true)
 	var attack_started: bool = first_view.activate_ex()
 	await get_tree().process_frame
 	_check("守衛有獨立攻擊貼圖", attack_started
@@ -196,7 +215,8 @@ func _ready() -> void:
 	var attack_finished: bool = await _await_until(
 		func(): return not first_view._is_attacking, UI_TIMEOUT_MS)
 	_check("攻擊後回到待機貼圖", attack_finished
-		and _uses_atlas(first_view.get_node("Sprite2D"), "res://assets/characters/tiers/"))
+		and (first_idle_ok if UnitStats.tier_texture_path(first_kind).is_empty() \
+		else _uses_atlas(first_view.get_node("Sprite2D"), "res://assets/characters/tiers/")))
 	first_view.set_active(true)
 
 	_hud.summon_requested.emit()
@@ -204,7 +224,14 @@ func _ready() -> void:
 	_check("棋盤滿了不會再召喚",
 		_main._board.occupied_indices().size() == Board.cell_count())
 
-	# 拖曳合成：兩隻一階應合成為一隻二階
+	# 整合測試固定成同職業，驗證一至五階的正確合成規則，不受隨機召喚結果影響。
+	_main._board.place(0, UnitStats.Kind.BULL, 1)
+	_main._board.place(1, UnitStats.Kind.BULL, 1)
+	_board_view.remove_unit(0)
+	_board_view.remove_unit(1)
+	_board_view.add_unit(0, UnitStats.Kind.BULL, 1)
+	_board_view.add_unit(1, UnitStats.Kind.BULL, 1)
+	# 拖曳合成：兩隻一階應合成為同職業二階
 	var tier_before: int = _main._board.get_unit(1)["tier"]
 	var dragged: bool = await _drag_unit(0, 1)
 	_check("拖曳有開始", dragged)
@@ -215,6 +242,14 @@ func _ready() -> void:
 	_check("合成後換成高一階裝備外觀", _uses_atlas(merged_view.get_node("Sprite2D"),
 		"res://assets/characters/tiers/"))
 	_check("合成會建立升階特效", _effects_include(GENERATED_ASSETS[4]))
+	var gold_before_cell_buy: int = _main._economy.gold
+	_mouse(Board.cell_center(0), true)
+	await get_tree().process_frame
+	_mouse(Board.cell_center(0), false)
+	await get_tree().process_frame
+	_check("點擊空白格可直接購買並放置",
+		_main._board.get_unit(0) != null
+		and _main._economy.gold < gold_before_cell_buy)
 
 	# 直接掛一個融合角色到場景樹，驗證融合待機圖與攻擊圖都能被載入。
 	var fusion_view: Node2D = load("res://scenes/unit_view.tscn").instantiate()
@@ -248,10 +283,10 @@ func _ready() -> void:
 	_check("開場緩衝後波次開始", wave_started)
 
 	var enemy_spawned: bool = await _await_until(
-		func(): return not get_tree().get_nodes_in_group("enemy").is_empty()
-			or _main._spawn_serial > 0, UI_TIMEOUT_MS)
+		func(): return (not get_tree().get_nodes_in_group("enemy").is_empty()
+			or _main._spawn_serial > 0), UI_TIMEOUT_MS)
 	_check("敵人有生成", enemy_spawned)
-ar live_enemies := get_tree().get_nodes_in_group("enemy")
+	var live_enemies := get_tree().get_nodes_in_group("enemy")
 	if not live_enemies.is_empty():
 		var first_enemy: Node = live_enemies[0]
 		_check("熊市敵人使用七欄圖集", _uses_atlas(first_enemy.get_node("Sprite2D"), GENERATED_ASSETS[6]))
@@ -264,6 +299,15 @@ func _ready() -> void:
 				_uses_atlas_frame(sample.get_node("Sprite2D"), GENERATED_ASSETS[6], kind, 7))
 			sample.queue_free()
 			await get_tree().process_frame
+		var bat: Node = load("res://scenes/enemy.tscn").instantiate()
+		_main._track_left.add_child(bat)
+		bat.setup(WaveTable.EnemyKind.BAT, 20)
+		await get_tree().process_frame
+		_check("空中蝙蝠使用獨立貼圖並升空",
+			bat.get_node("Sprite2D").texture.resource_path == WaveTable.texture_path(WaveTable.EnemyKind.BAT)
+			and WaveTable.is_airborne(WaveTable.EnemyKind.BAT))
+		bat.queue_free()
+		await get_tree().process_frame
 
 	var boss: Node = load("res://scenes/enemy.tscn").instantiate()
 	_main._track_left.add_child(boss)

@@ -2,7 +2,7 @@ extends GutTest
 
 func test_tier_one_damage_matches_base() -> void:
 	# 一階傷害就是設定表上的基礎值，沒有任何倍率
-	for kind in [UnitStats.Kind.BULL, UnitStats.Kind.GECKO, UnitStats.Kind.DINO]:
+	for kind in range(UnitStats.BASE_KIND_FIRST, UnitStats.BASE_KIND_LAST + 1):
 		assert_almost_eq(UnitStats.damage(kind, 1),
 			float(UnitStats.BASE[kind]["damage"]), 0.001)
 
@@ -43,19 +43,36 @@ func test_range_grows_with_tier() -> void:
 func test_attack_interval_does_not_change_with_tier() -> void:
 	assert_almost_eq(UnitStats.attack_interval(UnitStats.Kind.GECKO), 0.35, 0.001)
 
-func test_only_dino_has_splash() -> void:
+func test_roles_have_different_range_damage_and_speed() -> void:
 	assert_eq(UnitStats.splash_radius(UnitStats.Kind.BULL), 0.0)
 	assert_eq(UnitStats.splash_radius(UnitStats.Kind.GECKO), 0.0)
 	assert_almost_eq(UnitStats.splash_radius(UnitStats.Kind.DINO), 70.0, 0.001)
+	assert_ne(UnitStats.attack_range(UnitStats.Kind.FOX, 1),
+		UnitStats.attack_range(UnitStats.Kind.RHINO, 1))
+	assert_ne(UnitStats.damage(UnitStats.Kind.RABBIT, 1),
+		UnitStats.damage(UnitStats.Kind.RHINO, 1))
+	assert_ne(UnitStats.attack_interval(UnitStats.Kind.RABBIT),
+		UnitStats.attack_interval(UnitStats.Kind.FOX))
+	assert_gt(UnitStats.splash_radius(UnitStats.Kind.RHINO),
+		UnitStats.splash_radius(UnitStats.Kind.DINO))
+
+func test_attack_visual_changes_with_tier() -> void:
+	assert_ne(UnitStats.attack_tint(UnitStats.Kind.BULL, 1),
+		UnitStats.attack_tint(UnitStats.Kind.BULL, 2))
+	assert_gt(UnitStats.attack_scale_multiplier(UnitStats.Kind.BULL, 6),
+		UnitStats.attack_scale_multiplier(UnitStats.Kind.BULL, 1))
 
 func test_texture_paths_exist() -> void:
-	for kind in range(UnitStats.Kind.BULL, UnitStats.Kind.BULL_MARKET_PLANE + 1):
+	for kind in range(UnitStats.BASE_KIND_FIRST, UnitStats.Kind.BULL_MARKET_PLANE + 1):
 		var path := UnitStats.texture_path(kind)
 		assert_true(ResourceLoader.exists(path), "找不到貼圖 %s" % path)
 		var attack_path := UnitStats.attack_texture_path(kind)
 		assert_true(ResourceLoader.exists(attack_path), "找不到攻擊貼圖 %s" % attack_path)
 		if UnitStats.is_fusion(kind):
 			assert_eq(UnitStats.tier_texture_path(kind), "")
+		elif UnitStats.tier_texture_path(kind).is_empty():
+			# 新職業採單張透明角色稿，階級由尺寸、角標與攻擊能量色呈現。
+			assert_true(ResourceLoader.exists(path), "找不到新職業待機貼圖 %s" % path)
 		else:
 			var tier_path := UnitStats.tier_texture_path(kind)
 			assert_true(ResourceLoader.exists(tier_path), "找不到階級貼圖 %s" % tier_path)

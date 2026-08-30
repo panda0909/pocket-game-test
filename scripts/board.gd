@@ -114,15 +114,16 @@ func resolve_drop(from_index: int, to_index: int, rng: RandomNumberGenerator) ->
 	var fusion_kind := MergeRules.fusion_kind_for(
 		source["kind"], target["kind"], source["tier"], target["tier"])
 	if fusion_kind != -1:
-		_cells[to_index] = {"kind": fusion_kind, "tier": UnitStats.MAX_TIER}
+		var fusion_tier: int = mini(source["tier"], UnitStats.MAX_TIER)
+		_cells[to_index] = {"kind": fusion_kind, "tier": fusion_tier}
 		_cells[from_index] = null
 		return {
 			"action": "merge", "from": from_index, "to": to_index,
-			"kind": fusion_kind, "tier": UnitStats.MAX_TIER, "fusion": true,
+			"kind": fusion_kind, "tier": fusion_tier, "fusion": true,
 		}
 
-	if MergeRules.can_merge(source["tier"], target["tier"]):
-		var merged := MergeRules.merge_result(source["tier"], rng)
+	if MergeRules.can_merge(source["kind"], target["kind"], source["tier"], target["tier"]):
+		var merged := MergeRules.merge_result(source["kind"], source["tier"], rng)
 		_cells[to_index] = {"kind": merged["kind"], "tier": merged["tier"]}
 		_cells[from_index] = null
 		return {

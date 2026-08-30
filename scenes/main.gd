@@ -79,6 +79,7 @@ func _ready() -> void:
 	_hud.speed_toggled.connect(_on_speed_toggled)
 	_hud.ex_requested.connect(_on_ex_requested)
 	_board_view.unit_dropped.connect(_on_unit_dropped)
+	_board_view.empty_cell_selected.connect(_on_empty_cell_selected)
 	_board_view.unit_fired.connect(_on_unit_fired)
 	_board_view.unit_ex_fired.connect(_on_unit_ex_fired)
 	_spawn_timer.timeout.connect(_on_spawn_timer_timeout)
@@ -229,19 +230,35 @@ func _game_over() -> void:
 # --- 玩家操作 ---
 
 func _on_summon_requested() -> void:
-	if not _running or not _economy.can_afford_summon():
-		return
 	var index := _board.first_empty_index()
 	if index == -1:
 		_hud.show_message("沒有空格了，先合成吧")
 		return
+	_buy_unit_at(index)
+
+
+## 召喚按鈕仍然保留；直接點空白格則走同一套購買流程，
+## 但會把新角色精準放在玩家點的戰術位置。
+func _on_empty_cell_selected(index: int) -> void:
+	_buy_unit_at(index)
+
+
+func _buy_unit_at(index: int) -> bool:
+	if not _running:
+		return false
+	if not _board.is_empty(index):
+		return false
+	if not _economy.can_afford_summon():
+		_hud.show_message("資金不足，需要 %d 資金" % _economy.summon_cost())
+		return false
 	_economy.pay_summon()
-	# 一階守衛的種類也是隨機的，和合成一樣用可注入的 rng
-	var kind := _rng.randi_range(UnitStats.Kind.BULL, UnitStats.Kind.DINO)
+	# 一階守衛的種類也是隨機的，但只會從八種基礎職業抽取。
+	var kind := _rng.randi_range(UnitStats.BASE_KIND_FIRST, UnitStats.BASE_KIND_LAST)
 	_board.place(index, kind, 1)
 	_board_view.add_unit(index, kind, 1)
 	_spawn_image_effect(SUMMON_EFFECT_TEXTURE, Board.cell_center(index), 0.085, 0.48)
 	_refresh_hud()
+	return true
 
 
 func _on_speed_toggled() -> void:
@@ -324,6 +341,16 @@ func _on_unit_ex_fired(origin: Vector2, kind: int, tier: int) -> void:
 			_enemies_take_ex_damage(enemies.slice(0, mini(5, enemies.size())), damage * 1.35, color)
 		UnitStats.Kind.DINO:
 			_hit_area_or_furthest(enemies, origin, 260.0, damage * 1.8, color)
+		UnitStats.Kind.FOX:
+			_enemies_take_ex_damage(enemies.slice(0, 1), damage * 3.6, color)
+		UnitStats.Kind.RABBIT:
+			_enemies_take_ex_damage(enemies.slice(0, mini(10, enemies.size())), damage * 1.1, color)
+		UnitStats.Kind.OWL:
+			_hit_area_or_furthest(enemies, origin, 420.0, damage * 1.5, color)
+		UnitStats.Kind.RHINO:
+			_hit_area_or_furthest(enemies, origin, 340.0, damage * 2.2, color)
+		UnitStats.Kind.OCTOPUS:
+			_enemies_take_ex_damage(enemies, damage * 1.2, color)
 		UnitStats.Kind.DUO_SHOOTER:
 			_enemies_take_ex_damage(enemies.slice(0, mini(8, enemies.size())), damage * 1.7, color)
 		UnitStats.Kind.MARKET_TANK:

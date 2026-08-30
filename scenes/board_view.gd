@@ -5,6 +5,8 @@ extends Node2D
 
 ## 玩家把某格的守衛拖放到另一格時發出，由 Main 決定實際結果。
 signal unit_dropped(from_index: int, to_index: int)
+## 玩家直接點空白格時發出，由 Main 以目前召喚費用買入並放到該格。
+signal empty_cell_selected(index: int)
 ## 把底下所有守衛的開火事件轉給 Main
 signal unit_fired(origin: Vector2, target: Node2D, damage: float, splash: float, color: Color, kind: int)
 signal unit_ex_fired(origin: Vector2, kind: int, tier: int)
@@ -24,6 +26,9 @@ const MERGE_POP_TIME := 0.32
 var _views: Dictionary = {}
 var _drag_index := -1
 var _drag_origin := Vector2.ZERO
+var _press_index := -1
+var _press_position := Vector2.ZERO
+var _press_moved := false
 ## 波次進行中才讓守衛索敵。新加入的守衛會沿用目前狀態。
 var _units_active := false
 var _cell_style: StyleBoxFlat = null
@@ -168,7 +173,12 @@ func _begin_drag(pos: Vector2) -> void:
 	if not visible:
 		return
 	var index := Board.index_at_position(pos)
-	if index == -1 or not _views.has(index):
+	if index == -1:
+		return
+	_press_index = index
+	_press_position = pos
+	_press_moved = false
+	if not _views.has(index):
 		return
 	_drag_index = index
 	_drag_origin = _views[index].position
@@ -176,6 +186,8 @@ func _begin_drag(pos: Vector2) -> void:
 
 
 func _update_drag(pos: Vector2) -> void:
+	if _press_index != -1 and pos.distance_to(_press_position) > 12.0:
+		_press_moved = true
 	if _drag_index == -1:
 		return
 	_views[_drag_index].position = pos
@@ -183,6 +195,13 @@ func _update_drag(pos: Vector2) -> void:
 
 func _end_drag(pos: Vector2) -> void:
 	if _drag_index == -1:
+		var pressed_index := _press_index
+		var should_buy := pressed_index != -1 \
+			and not _press_moved \
+			and not _views.has(pressed_index)
+		_reset_press()
+		if should_buy:
+			empty_cell_selected.emit(pressed_index)
 		return
 	var from_index := _drag_index
 	var to_index := Board.index_at_position(pos)
@@ -190,14 +209,21 @@ func _end_drag(pos: Vector2) -> void:
 	# 順序反過來的話會動到已經不存在的東西。
 	_reset_drag_visual()
 	if to_index == -1:
+		_reset_press()
 		return
+	_reset_press()
 	unit_dropped.emit(from_index, to_index)
 
 
 func _reset_drag_visual() -> void:
-	if _drag_index == -1:
-		return
-	if _views.has(_drag_index):
+	if _drag_index != -1 and _views.has(_drag_index):
 		_views[_drag_index].position = Board.cell_center(_drag_index)
 		_views[_drag_index].z_index = 0
 	_drag_index = -1
+	_reset_press()
+
+
+func _reset_press() -> void:
+	_press_index = -1
+	_press_position = Vector2.ZERO
+	_press_moved = false

@@ -67,7 +67,11 @@ func _update_texture(p_tier: int) -> void:
 	if UnitStats.is_fusion(kind):
 		_sprite.texture = load(UnitStats.texture_path(kind))
 		return
-	var source: Texture2D = load(UnitStats.tier_texture_path(kind))
+	var tier_path := UnitStats.tier_texture_path(kind)
+	if tier_path.is_empty():
+		_sprite.texture = load(UnitStats.texture_path(kind))
+		return
+	var source: Texture2D = load(tier_path)
 	if source == null:
 		_sprite.texture = load(UnitStats.texture_path(kind))
 		return
@@ -93,6 +97,7 @@ func _update_sprite_scale() -> void:
 		var attack_factor := minf(
 			ATTACK_TARGET_HEIGHT / float(_sprite.texture.get_height()),
 			ATTACK_TARGET_WIDTH / float(_sprite.texture.get_width()))
+		attack_factor *= UnitStats.attack_scale_multiplier(kind, tier)
 		_sprite.scale = Vector2(attack_factor, attack_factor)
 		return
 	var factor := BASE_SPRITE_SCALE + SCALE_PER_TIER * (tier - 1)
@@ -105,6 +110,7 @@ func _set_attack_state(value: bool) -> void:
 	_is_attacking = value
 	_update_texture(tier)
 	_update_sprite_scale()
+	_sprite.modulate = UnitStats.attack_tint(kind, tier) if value else Color.WHITE
 	queue_redraw()
 
 
