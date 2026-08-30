@@ -143,7 +143,7 @@ func _refresh_hud() -> void:
 	_hud.update_stats(maxi(_wave, 1), _economy.lives, _economy.gold,
 		maxf(_wave_time_left, 0.0))
 	_hud.update_summon_button(_economy.summon_cost(), _economy.can_afford_summon(), board_full)
-	_hud.update_salvage_button(has_selection, refund, board_full and not merge_available)
+	_hud.update_salvage_button(has_selection, refund, board_full and not merge_available, board_full)
 	_hud.update_ex_button(_ex_cooldown_left, not _board.occupied_indices().is_empty())
 
 

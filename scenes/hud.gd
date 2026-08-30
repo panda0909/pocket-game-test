@@ -90,9 +90,10 @@ func update_summon_button(cost: int, affordable: bool, board_full: bool = false)
 	_summon_button.disabled = not affordable
 
 
-func update_salvage_button(has_selection: bool, refund: int, available: bool) -> void:
+func update_salvage_button(has_selection: bool, refund: int, available: bool,
+		board_full: bool = false) -> void:
 	if not available:
-		_salvage_button.text = "清倉"
+		_salvage_button.text = "先合成" if board_full else "清倉"
 		_salvage_button.disabled = true
 	elif not has_selection:
 		_salvage_button.text = "選角清倉"
