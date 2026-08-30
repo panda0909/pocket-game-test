@@ -7,6 +7,8 @@ signal summon_requested
 signal salvage_requested
 signal speed_toggled
 signal ex_requested
+signal route_previous_requested
+signal route_next_requested
 
 const RESTART_DELAY := 1.0
 
@@ -17,6 +19,9 @@ const RESTART_DELAY := 1.0
 @onready var _wave_banner: Label = $WaveBanner
 @onready var _best_label: Label = $BestLabel
 @onready var _start_button: Button = $StartButton
+@onready var _route_label: Label = $RouteLabel
+@onready var _route_previous_button: Button = $RoutePreviousButton
+@onready var _route_next_button: Button = $RouteNextButton
 @onready var _summon_button: Button = $SummonButton
 @onready var _salvage_button: Button = $SalvageButton
 @onready var _speed_button: Button = $SpeedButton
@@ -32,6 +37,8 @@ func _ready() -> void:
 	_salvage_button.pressed.connect(func(): salvage_requested.emit())
 	_speed_button.pressed.connect(func(): speed_toggled.emit())
 	_ex_button.pressed.connect(func(): ex_requested.emit())
+	_route_previous_button.pressed.connect(func(): route_previous_requested.emit())
+	_route_next_button.pressed.connect(func(): route_next_requested.emit())
 
 
 func show_title(best_wave: int) -> void:
@@ -41,6 +48,9 @@ func show_title(best_wave: int) -> void:
 	_message.show()
 	_best_label.text = "最高波次 %d" % best_wave
 	_best_label.show()
+	_route_label.show()
+	_route_previous_button.show()
+	_route_next_button.show()
 	_start_button.text = "開始"
 	_start_button.show()
 	_stats_label.hide()
@@ -55,6 +65,9 @@ func hide_title() -> void:
 	_message.hide()
 	_best_label.hide()
 	_start_button.hide()
+	_route_label.hide()
+	_route_previous_button.hide()
+	_route_next_button.hide()
 	_stats_label.show()
 	_summon_button.show()
 	_salvage_button.show()
@@ -79,6 +92,10 @@ func update_stats(wave: int, lives: int, gold: int, seconds_left: float) -> void
 
 func update_speed_button(multiplier: float) -> void:
 	_speed_button.text = "×%d" % int(multiplier)
+
+
+func update_route(route_name: String, route_index: int, total_routes: int) -> void:
+	_route_label.text = "地圖路線 %d / %d　%s" % [route_index + 1, total_routes, route_name]
 
 
 func update_summon_button(cost: int, affordable: bool, board_full: bool = false) -> void:
@@ -133,6 +150,9 @@ func show_game_over(wave: int, best_wave: int, is_record: bool) -> void:
 	_best_label.text = "最高波次 %d" % best_wave
 	_best_label.show()
 	_stats_label.hide()
+	_route_label.hide()
+	_route_previous_button.hide()
+	_route_next_button.hide()
 	_summon_button.hide()
 	_salvage_button.hide()
 	_speed_button.hide()

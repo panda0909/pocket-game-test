@@ -8,6 +8,7 @@ const BURST_SCENE := preload("res://scenes/effects/burst.tscn")
 const EX_EFFECT_SCENE := preload("res://scenes/effects/ex_burst.tscn")
 const DAMAGE_NUMBER_SCENE := preload("res://scenes/effects/damage_number.tscn")
 const BATTLEFIELD_TEXTURE := preload("res://assets/generated/stock_market_background.png")
+const COVER_TEXTURE := preload("res://assets/generated/stock_character_ensemble_cover.png")
 const T_PATH_TEXTURE := preload("res://assets/generated/stock_t_path_overlay.png")
 const JUNCTION_CORE_TEXTURE := preload("res://assets/generated/stock_junction_core.png")
 const SUMMON_EFFECT_TEXTURE := preload("res://assets/generated/stock_summon_effect.png")
@@ -25,6 +26,28 @@ const EX_COOLDOWN := 14.0
 
 ## 加速倍率。這類遊戲一局動輒上百波，沒有加速會玩得很痛苦。
 const SPEED_STEPS := [1.0, 2.0, 3.0]
+
+## 三種地圖都在中央金庫匯流，但入口與轉折不同，讓玩家可以依照守衛射程
+## 選擇自己熟悉的路線。每條曲線的終點固定在金庫，敵人生成邏輯不需要分叉。
+const ROUTE_POINTS := [
+	[
+		[Vector2(64.0, 600.0), Vector2(220.0, 600.0), Vector2(360.0, 600.0), Vector2(360.0, 1010.0)],
+		[Vector2(656.0, 600.0), Vector2(500.0, 600.0), Vector2(360.0, 600.0), Vector2(360.0, 1010.0)],
+	],
+	[
+		[Vector2(64.0, 260.0), Vector2(64.0, 470.0), Vector2(146.0, 550.0), Vector2(260.0, 550.0), Vector2(360.0, 600.0), Vector2(360.0, 1010.0)],
+		[Vector2(656.0, 260.0), Vector2(656.0, 470.0), Vector2(574.0, 550.0), Vector2(460.0, 550.0), Vector2(360.0, 600.0), Vector2(360.0, 1010.0)],
+	],
+	[
+		[Vector2(64.0, 820.0), Vector2(160.0, 820.0), Vector2(240.0, 720.0), Vector2(160.0, 620.0), Vector2(260.0, 520.0), Vector2(360.0, 520.0), Vector2(360.0, 1010.0)],
+		[Vector2(656.0, 820.0), Vector2(560.0, 820.0), Vector2(480.0, 720.0), Vector2(560.0, 620.0), Vector2(460.0, 520.0), Vector2(360.0, 520.0), Vector2(360.0, 1010.0)],
+	],
+]
+const ROUTE_JUNCTIONS := [
+	Vector2(360.0, 600.0),
+	Vector2(360.0, 600.0),
+	Vector2(360.0, 520.0),
+]
 
 ## 擊殺的爆散偏金色，讀起來像「獲利」，呼應投資金庫主題
 const KILL_BURST_COLOR := Color(0.98, 0.78, 0.20)
@@ -51,6 +74,7 @@ var _pending: Array = []
 var _speed_index := 0
 var _spawn_serial := 0
 var _ex_cooldown_left := 0.0
+var _route_index := Board.Route.CROSS
 
 var _vault_flash_tween: Tween = null
 var _vault_shake_tween: Tween = null
@@ -79,6 +103,8 @@ func _ready() -> void:
 	_hud.salvage_requested.connect(_on_salvage_requested)
 	_hud.speed_toggled.connect(_on_speed_toggled)
 	_hud.ex_requested.connect(_on_ex_requested)
+	_hud.route_previous_requested.connect(_on_route_previous_requested)
+	_hud.route_next_requested.connect(_on_route_next_requested)
 	_board_view.unit_dropped.connect(_on_unit_dropped)
 	_board_view.empty_cell_selected.connect(_on_empty_cell_selected)
 	_board_view.unit_selected.connect(_on_unit_selected)
@@ -86,26 +112,30 @@ func _ready() -> void:
 	_board_view.unit_ex_fired.connect(_on_unit_ex_fired)
 	_spawn_timer.timeout.connect(_on_spawn_timer_timeout)
 	# 以程式常數再指定一次，確保換場景或匯出後不會退回舊的 inspector 資產。
-	_battlefield_art.texture = BATTLEFIELD_TEXTURE
+	_battlefield_art.texture = COVER_TEXTURE
 	_tactical_map_preview.texture = T_PATH_TEXTURE
 	_junction_core.texture = JUNCTION_CORE_TEXTURE
+	_apply_route_layout()
 	# 戰場只在遊戲中顯示，否則路徑與金庫會疊到標題畫面。
 	_board_view.hide()
 	$Tracks.hide()
 	_vault.hide()
-	_battlefield_art.hide()
+	_battlefield_art.show()
 	_junction_core.hide()
-	_tactical_map_preview.show()
+	_tactical_map_preview.hide()
+	_hud.update_route(Board.route_name(_route_index), _route_index, Board.route_count())
 	_hud.show_title(_best_wave)
 
 
 func new_game() -> void:
 	_clear_field()
+	_apply_route_layout()
 	_board.clear_all()
 	_board_view.clear_all()
 	_board_view.show()
 	$Tracks.show()
 	_vault.show()
+	_battlefield_art.texture = BATTLEFIELD_TEXTURE
 	_battlefield_art.show()
 	_junction_core.show()
 	_tactical_map_preview.hide()
@@ -121,7 +151,7 @@ func new_game() -> void:
 	_hud.hide_title()
 	_hud.update_speed_button(SPEED_STEPS[_speed_index])
 	_refresh_hud()
-	_hud.show_message("市場開盤，準備防守")
+	_hud.show_message("路線：%s｜市場開盤，準備防守" % Board.route_name(_route_index))
 
 
 ## 清空場上敵人、投射物、特效與傷害數字。結束與重來都要用。
@@ -131,6 +161,40 @@ func _clear_field() -> void:
 	for container in [_projectiles, _effects, _damage_numbers]:
 		for child in container.get_children():
 			child.queue_free()
+
+
+func _on_route_previous_requested() -> void:
+	_set_route(_route_index - 1)
+
+
+func _on_route_next_requested() -> void:
+	_set_route(_route_index + 1)
+
+
+func _set_route(route: int) -> void:
+	_route_index = posmod(route, Board.route_count())
+	_apply_route_layout()
+	_hud.update_route(Board.route_name(_route_index), _route_index, Board.route_count())
+
+
+func _apply_route_layout() -> void:
+	Board.set_active_route(_route_index)
+	var route: Array = ROUTE_POINTS[_route_index]
+	_track_left.curve = _curve_from_points(route[0])
+	_track_right.curve = _curve_from_points(route[1])
+	_track_left.junction_position = ROUTE_JUNCTIONS[_route_index]
+	_track_right.junction_position = ROUTE_JUNCTIONS[_route_index]
+	_junction_core.position = ROUTE_JUNCTIONS[_route_index]
+	_track_left.queue_redraw()
+	_track_right.queue_redraw()
+	_board_view.queue_redraw()
+
+
+func _curve_from_points(points: Array) -> Curve2D:
+	var curve := Curve2D.new()
+	for point in points:
+		curve.add_point(point)
+	return curve
 
 
 func _refresh_hud() -> void:
@@ -227,6 +291,8 @@ func _game_over() -> void:
 	_battlefield_art.hide()
 	_junction_core.hide()
 	_tactical_map_preview.hide()
+	_battlefield_art.texture = COVER_TEXTURE
+	_battlefield_art.show()
 	_clear_field()
 	Engine.time_scale = 1.0
 	var is_record := _wave > _best_wave

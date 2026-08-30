@@ -5,28 +5,44 @@ extends RefCounted
 ## 因此所有棋盤規則都能在沒有場景樹的情況下測試。
 ## BoardView 只負責把這裡的狀態畫出來。
 
-## 4×4 = 16 格。中央水平路徑上下各有兩列，中央垂直路徑與匯流點刻意留空，
-## 讓配置區對稱、角色有足夠辨識距離，也保留 T 字防線的戰術焦點。
-const COLS := 4
-const ROWS := 4
-const CELL_SIZE := 104.0
-const ORIGIN := Vector2(140.0, 320.0)
+## 6×6 = 36 格。上下各三列，角色排列更密集，但中央路徑與匯流點仍保留
+## 空間，玩家可以同時看清楚守衛、敵人和路線。
+const COLS := 6
+const ROWS := 6
+const CELL_SIZE := 84.0
+const ORIGIN := Vector2(96.0, 280.0)
+
+## 入口畫面可以切換三種路線；格子維持同一套密集配置，讓玩家換圖時仍能
+## 專注在走位和合成，而不是重新適應完全不同的操作位置。
+enum Route {
+	CROSS,
+	LONG_T,
+	SNAKE,
+}
+
+const ROUTE_NAMES := ["十字匯流", "長 T 字", "雙蛇行"]
 
 ## 棋盤資料仍然用線性 index。索引採左右交錯順序，前幾次召喚會同時
-## 鋪開兩側，而不是全部堆在畫面左上角。
+## 鋪開兩側，而不是全部堆在畫面左上角。六欄的間距縮小，讓畫面可以
+## 放下更多角色又不犧牲角色辨識度。
 const CELL_POSITIONS := [
-	Vector2(140.0, 320.0), Vector2(580.0, 320.0),
-	Vector2(260.0, 320.0), Vector2(460.0, 320.0),
-	Vector2(140.0, 450.0), Vector2(580.0, 450.0),
-	Vector2(260.0, 450.0), Vector2(460.0, 450.0),
-	Vector2(140.0, 760.0), Vector2(580.0, 760.0),
-	Vector2(260.0, 760.0), Vector2(460.0, 760.0),
-	Vector2(140.0, 890.0), Vector2(580.0, 890.0),
-	Vector2(260.0, 890.0), Vector2(460.0, 890.0),
+	Vector2(96.0, 280.0), Vector2(201.0, 280.0), Vector2(306.0, 280.0),
+	Vector2(414.0, 280.0), Vector2(519.0, 280.0), Vector2(624.0, 280.0),
+	Vector2(96.0, 385.0), Vector2(201.0, 385.0), Vector2(306.0, 385.0),
+	Vector2(414.0, 385.0), Vector2(519.0, 385.0), Vector2(624.0, 385.0),
+	Vector2(96.0, 490.0), Vector2(201.0, 490.0), Vector2(306.0, 490.0),
+	Vector2(414.0, 490.0), Vector2(519.0, 490.0), Vector2(624.0, 490.0),
+	Vector2(96.0, 700.0), Vector2(201.0, 700.0), Vector2(306.0, 700.0),
+	Vector2(414.0, 700.0), Vector2(519.0, 700.0), Vector2(624.0, 700.0),
+	Vector2(96.0, 805.0), Vector2(201.0, 805.0), Vector2(306.0, 805.0),
+	Vector2(414.0, 805.0), Vector2(519.0, 805.0), Vector2(624.0, 805.0),
+	Vector2(96.0, 910.0), Vector2(201.0, 910.0), Vector2(306.0, 910.0),
+	Vector2(414.0, 910.0), Vector2(519.0, 910.0), Vector2(624.0, 910.0),
 ]
 
 ## 每格內容為 null 或 {"kind": int, "tier": int}
 var _cells: Array = []
+static var active_route: int = Route.CROSS
 
 
 func _init() -> void:
@@ -38,20 +54,41 @@ static func cell_count() -> int:
 	return COLS * ROWS
 
 
+static func route_count() -> int:
+	return ROUTE_NAMES.size()
+
+
+static func route_name(route: int) -> String:
+	return ROUTE_NAMES[posmod(route, route_count())]
+
+
+static func set_active_route(route: int) -> void:
+	active_route = posmod(route, route_count())
+
+
 static func cell_center(index: int) -> Vector2:
-	if index < 0 or index >= CELL_POSITIONS.size():
+	var positions: Array = _positions_for_route(active_route)
+	if index < 0 or index >= positions.size():
 		return Vector2(-1.0, -1.0)
-	return CELL_POSITIONS[index]
+	return positions[index]
 
 
 ## 座標落在哪一格。不在棋盤範圍內回傳 -1。
 static func index_at_position(pos: Vector2) -> int:
 	var half := CELL_SIZE * 0.5
-	for i in CELL_POSITIONS.size():
-		var center: Vector2 = CELL_POSITIONS[i]
+	var positions: Array = _positions_for_route(active_route)
+	for i in positions.size():
+		var center: Vector2 = positions[i]
 		if Rect2(center - Vector2(half, half), Vector2(CELL_SIZE, CELL_SIZE)).has_point(pos):
 			return i
 	return -1
+
+
+static func _positions_for_route(route: int) -> Array:
+	# 目前三張圖都採用相同的緊密 6×6 戰術盤；路線本身由主場景的三組
+	# Path2D 曲線切換。保留這個抽象層，之後若某張地圖需要專屬站位可以
+	# 只替換這裡，不必改動 BoardView 或輸入判定。
+	return CELL_POSITIONS
 
 
 func get_unit(index: int):

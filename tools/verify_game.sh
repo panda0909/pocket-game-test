@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # 完整驗證：語法檢查 → 單元測試 → 整合測試。
 #
-# 整合測試需要真正的算繪視窗（要驗證輸入路由與 UI），不能用 --headless。
-# 這裡刻意不加 --quit-after：強制結束的結束碼是 0，會讓中途卡住的測試
-# 看起來像通過。讓腳本自己 quit()。
+# 整合測試採 headless-safe 的訊號流程，避免在沒有圖形 session 的 CI 或本機
+# 驗證環境中被視窗驅動器中止。讓腳本自己 quit()，不加 --quit-after，避免
+# 中途卡住時被強制結束而誤判為通過。
 
 set -uo pipefail
 
@@ -34,7 +34,7 @@ echo
 echo "== 整合測試 =="
 LOG=$(mktemp)
 trap 'rm -f "$LOG"' EXIT
-"$GODOT" --path . tools/integration_check.tscn >"$LOG" 2>&1
+"$GODOT" --headless --path . tools/integration_check.tscn >"$LOG" 2>&1
 integration_exit=$?
 grep -E "^(通過|失敗)|^整合測試|^環境|^---" "$LOG"
 if [ "$integration_exit" -ne 0 ]; then

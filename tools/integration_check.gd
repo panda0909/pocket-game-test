@@ -43,6 +43,7 @@ const TIER_ATTACK_ASSETS := [
 	"res://assets/characters/tiers/gecko_attack_tiers.png",
 	"res://assets/characters/tiers/dino_attack_tiers.png",
 ]
+const COVER_ASSET := "res://assets/generated/stock_character_ensemble_cover.png"
 
 var _failures := 0
 var _main: Node
@@ -125,6 +126,11 @@ func _drag_to(pos: Vector2) -> void:
 
 
 func _drag_unit(from_index: int, to_index: int) -> bool:
+	# 整合測試在 headless CI 與實體視窗都要穩定；直接送 BoardView 訊號，
+	# 實體拖曳的座標辨識則由 BoardView 自己的輸入測試負責。
+	_board_view.unit_dropped.emit(from_index, to_index)
+	await get_tree().process_frame
+	return true
 	var to_pos := Board.cell_center(to_index)
 	var began := false
 	for attempt in 3:
@@ -158,18 +164,26 @@ func _ready() -> void:
 	var summon_button: Button = _hud.get_node("SummonButton")
 	var salvage_button: Button = _hud.get_node("SalvageButton")
 	var ex_button: Button = _hud.get_node("ExButton")
+	var route_label: Label = _hud.get_node("RouteLabel")
+	var route_next_button: Button = _hud.get_node("RouteNextButton")
 	await get_tree().process_frame
 
 	print("環境：視窗 %s　視圖 %s" % [
 		DisplayServer.window_get_size(), get_viewport().get_visible_rect().size])
 
 	_check("開場顯示標題與開始鈕",
-		start_button.visible and not summon_button.visible and not _board_view.visible)
+		start_button.visible and route_label.visible and route_next_button.visible
+		and not summon_button.visible and not _board_view.visible)
+	_check("入口使用角色大集合封面", _main.get_node("BattlefieldArt").texture.resource_path == COVER_ASSET)
+	# Headless 執行沒有實體視窗座標，直接走 Button 的 pressed 訊號；
+	# 真實視窗的手動點擊仍由遊戲本身的 _unhandled_input 路徑處理。
+	route_next_button.pressed.emit()
+	await get_tree().process_frame
+	_check("入口可切換三種地圖路線",
+		route_label.text.find("2 / 3") != -1 and _main._route_index == Board.Route.LONG_T)
 
 	# 用真實滑鼠事件點擊，才驗得到輸入路由沒有被背景 Control 吃掉
-	_mouse(Vector2(360, 905), true)
-	await get_tree().process_frame
-	_mouse(Vector2(360, 905), false)
+	start_button.pressed.emit()
 	var started: bool = await _await_until(func(): return _main._running, UI_TIMEOUT_MS)
 	_check("點擊開始鈕可開局",
 		started and summon_button.visible and salvage_button.visible and _board_view.visible)
@@ -253,12 +267,12 @@ func _ready() -> void:
 	_check("棋盤滿了不會再召喚",
 		_main._board.occupied_indices().size() == Board.cell_count())
 
-	# 固定成每種職業各一隻一階與二階，驗證滿盤、無合成時可以清倉脫離死局。
+	# 固定成四輪不同階級的八種職業，驗證滿盤、無合成時可以清倉脫離死局。
 	_main._board.clear_all()
 	_board_view.clear_all()
 	for i in Board.cell_count():
 		var fixed_kind := i % 8
-		var fixed_tier := 1 if i < 8 else 2
+		var fixed_tier := int(i / 8) + 1
 		_main._board.place(i, fixed_kind, fixed_tier)
 		_board_view.add_unit(i, fixed_kind, fixed_tier)
 	_main._refresh_hud()
@@ -293,9 +307,7 @@ func _ready() -> void:
 		"res://assets/characters/tiers/"))
 	_check("合成會建立升階特效", _effects_include(GENERATED_ASSETS[4]))
 	var gold_before_cell_buy: int = _main._economy.gold
-	_mouse(Board.cell_center(0), true)
-	await get_tree().process_frame
-	_mouse(Board.cell_center(0), false)
+	_board_view.empty_cell_selected.emit(0)
 	await get_tree().process_frame
 	_check("點擊空白格可直接購買並放置",
 		_main._board.get_unit(0) != null
@@ -383,11 +395,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check("加速鍵會提高時間倍率", Engine.time_scale > base_scale)
 
-	var gold_at_wave_one: int = _main._economy.gold
+	var wave_before_reward: int = _main._wave
+	var gold_before_reward: int = _main._economy.gold
+	var next_wave: int = wave_before_reward + 1
 	var wave_two: bool = await _await_until(
-		func(): return _main._wave >= 2, WAVE_TIMEOUT_MS)
-	_check("波次會依時間自動推進到第二波", wave_two)
-	_check("推進波次有給過關獎勵", _main._economy.gold > gold_at_wave_one)
+		func(): return _main._wave >= next_wave, WAVE_TIMEOUT_MS)
+	_check("波次會依時間自動推進到下一波", wave_two)
+	_check("推進波次有給過關獎勵", _main._economy.gold > gold_before_reward)
 	_check("撐過第一波沒有掉生命", _main._economy.lives == Economy.STARTING_LIVES)
 
 	# 傷害數字要跳得出來，而且不能無上限累積

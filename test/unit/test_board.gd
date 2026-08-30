@@ -3,6 +3,7 @@ extends GutTest
 var board: Board
 
 func before_each() -> void:
+	Board.set_active_route(Board.Route.CROSS)
 	board = Board.new()
 
 func _rng() -> RandomNumberGenerator:
@@ -35,9 +36,10 @@ func test_full_board_reports_no_empty() -> void:
 	assert_true(board.is_full())
 
 func test_full_board_with_no_legal_merge_is_detectable() -> void:
-	# 每個職業各放一隻一階與二階：盤面全滿，但沒有同職業同階或六階融合。
+	# 依序放入四輪八職業，再補四個五階：盤面全滿，但沒有同職業同階
+	# 或六階融合，確保「滿盤無解」狀態可以被辨識。
 	for i in Board.cell_count():
-		board.place(i, i % 8, 1 if i < 8 else 2)
+		board.place(i, i % 8, int(i / 8) + 1)
 	assert_true(board.is_full())
 	assert_false(board.has_merge_available())
 
@@ -50,25 +52,33 @@ func test_full_board_with_legal_merge_is_detectable() -> void:
 func test_cell_center_matches_layout() -> void:
 	assert_eq(Board.cell_center(0), Board.ORIGIN)
 	assert_eq(Board.cell_center(Board.COLS - 1),
-		Vector2(460.0, 320.0))
+		Vector2(624.0, 280.0))
 	assert_eq(Board.cell_center(Board.cell_count() - 1),
-		Vector2(460.0, 890.0))
+		Vector2(624.0, 910.0))
 
 func test_board_is_dense_enough_to_build_a_wall() -> void:
-	# 交叉型防線上下各兩列，中央匯流點仍然留空。
-	assert_eq(Board.cell_count(), 16)
-	assert_eq(Board.COLS, 4)
-	assert_eq(Board.ROWS, 4)
+	# 三種路線共用密集 6×6 配置；中央匯流區仍然留空。
+	assert_eq(Board.cell_count(), 36)
+	assert_eq(Board.COLS, 6)
+	assert_eq(Board.ROWS, 6)
+	assert_eq(Board.route_count(), 3)
+
+func test_route_selector_wraps_across_three_maps() -> void:
+	Board.set_active_route(Board.Route.SNAKE)
+	assert_eq(Board.active_route, Board.Route.SNAKE)
+	assert_eq(Board.route_name(Board.active_route), "雙蛇行")
+	Board.set_active_route(3)
+	assert_eq(Board.active_route, Board.Route.CROSS)
 
 func test_board_fits_inside_the_track() -> void:
 	# 交叉型地圖上下方留出路徑與匯流空間。
 	var half := Board.CELL_SIZE * 0.5
 	var first := Board.cell_center(0)
 	var last := Board.cell_center(Board.cell_count() - 1)
-	assert_gt(first.x - half, 80.0, "左緣不可超出戰場")
-	assert_lt(last.x + half, 640.0, "右緣不可超出戰場")
-	assert_gt(first.y - half, 240.0, "上排不可壓到 HUD")
-	assert_lt(last.y + half, 960.0, "下排不可壓到金庫")
+	assert_gt(first.x - half, 40.0, "左緣不可超出戰場")
+	assert_lt(last.x + half, 680.0, "右緣不可超出戰場")
+	assert_gt(first.y - half, 220.0, "上排不可壓到 HUD")
+	assert_lt(last.y + half, 1000.0, "下排不可壓到金庫")
 
 func test_index_at_position_round_trips() -> void:
 	for i in Board.cell_count():

@@ -13,6 +13,7 @@ const START_COLOR := Color(0.90, 0.72, 0.42)
 @export var draw_track := true
 @export var route_color := TRACK_COLOR
 @export var start_color := START_COLOR
+@export var junction_position := Vector2(360.0, 600.0)
 
 
 func _draw() -> void:
@@ -28,6 +29,5 @@ func _draw() -> void:
 	draw_circle(points[0], 20.0, start_color)
 	draw_arc(points[0], 20.0, 0.0, TAU, 24, Color(0.20, 0.20, 0.24), 4.0, true)
 	# 左右入口在中央交叉點匯流，這裡是最值得卡高階輸出的戰術焦點。
-	var junction := Vector2(360.0, 600.0)
-	draw_circle(junction, 42.0, Color(0.98, 0.45, 0.22, 0.16))
-	draw_arc(junction, 42.0, 0.0, TAU, 32, Color(1.0, 0.55, 0.24, 0.72), 3.0, true)
+	draw_circle(junction_position, 42.0, Color(0.98, 0.45, 0.22, 0.16))
+	draw_arc(junction_position, 42.0, 0.0, TAU, 32, Color(1.0, 0.55, 0.24, 0.72), 3.0, true)
