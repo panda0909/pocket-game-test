@@ -38,6 +38,11 @@ const NEW_CHARACTER_ASSETS := [
 	"res://assets/characters/new/arbitrage_octopus.png",
 	"res://assets/characters/new/arbitrage_octopus_attack.png",
 ]
+const TIER_ATTACK_ASSETS := [
+	"res://assets/characters/tiers/red_bull_attack_tiers.png",
+	"res://assets/characters/tiers/gecko_attack_tiers.png",
+	"res://assets/characters/tiers/dino_attack_tiers.png",
+]
 
 var _failures := 0
 var _main: Node
@@ -174,6 +179,10 @@ func _ready() -> void:
 	for path in NEW_CHARACTER_ASSETS:
 		all_new_character_assets_loaded = all_new_character_assets_loaded and ResourceLoader.exists(path)
 	_check("五種新職業待機／攻擊素材可載入", all_new_character_assets_loaded)
+	var all_tier_attack_assets_loaded := true
+	for path in TIER_ATTACK_ASSETS:
+		all_tier_attack_assets_loaded = all_tier_attack_assets_loaded and ResourceLoader.exists(path)
+	_check("牛、蜥蜴、恐龍四階攻擊圖集可載入", all_tier_attack_assets_loaded)
 	_check("戰場背景已接入", _main.get_node("BattlefieldArt").texture.resource_path == GENERATED_ASSETS[0])
 	_check("T 型地圖預覽已接入", _main.get_node("TacticalMapPreview").texture.resource_path == GENERATED_ASSETS[1])
 	_check("中央匯流核心已接入", _main.get_node("JunctionCore").texture.resource_path == GENERATED_ASSETS[2])
@@ -208,9 +217,25 @@ func _ready() -> void:
 	first_view.set_active(true)
 	var attack_started: bool = first_view.activate_ex()
 	await get_tree().process_frame
-	_check("守衛有獨立攻擊貼圖", attack_started
-		and first_view.get_node("Sprite2D").texture.resource_path
-		== UnitStats.attack_texture_path(first_kind))
+	var first_attack_path := UnitStats.attack_tier_texture_path(first_kind)
+	var first_attack_ok: bool = _uses_atlas_frame(first_view.get_node("Sprite2D"),
+		first_attack_path, clampi(first_view.tier, 1, 4) - 1, 4) \
+		if not first_attack_path.is_empty() else first_view.get_node("Sprite2D").texture.resource_path \
+		== UnitStats.attack_texture_path(first_kind)
+	_check("守衛有依階級變化的攻擊貼圖", attack_started and first_attack_ok)
+	# 三個有升階攻擊圖集的角色各測一次，避免隨機召喚剛好沒有抽到其中一種。
+	for attack_kind in [UnitStats.Kind.BULL, UnitStats.Kind.GECKO, UnitStats.Kind.DINO]:
+		var tier_view: Node2D = load("res://scenes/unit_view.tscn").instantiate()
+		_board_view.add_child(tier_view)
+		tier_view.setup(attack_kind, 3)
+		tier_view.set_active(true)
+		var tier_attack_started: bool = tier_view.activate_ex()
+		await get_tree().process_frame
+		_check("%s 三階使用第三格攻擊圖" % UnitStats.display_name(attack_kind),
+			tier_attack_started and _uses_atlas_frame(tier_view.get_node("Sprite2D"),
+			UnitStats.attack_tier_texture_path(attack_kind), 2, 4))
+		tier_view.queue_free()
+		await get_tree().process_frame
 	first_view.set_active(false)
 	var attack_finished: bool = await _await_until(
 		func(): return not first_view._is_attacking, UI_TIMEOUT_MS)

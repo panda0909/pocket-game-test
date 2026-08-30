@@ -68,6 +68,9 @@ func test_texture_paths_exist() -> void:
 		assert_true(ResourceLoader.exists(path), "找不到貼圖 %s" % path)
 		var attack_path := UnitStats.attack_texture_path(kind)
 		assert_true(ResourceLoader.exists(attack_path), "找不到攻擊貼圖 %s" % attack_path)
+		var attack_tier_path := UnitStats.attack_tier_texture_path(kind)
+		if not attack_tier_path.is_empty():
+			assert_true(ResourceLoader.exists(attack_tier_path), "找不到升階攻擊圖集 %s" % attack_tier_path)
 		if UnitStats.is_fusion(kind):
 			assert_eq(UnitStats.tier_texture_path(kind), "")
 		elif UnitStats.tier_texture_path(kind).is_empty():

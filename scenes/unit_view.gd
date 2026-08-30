@@ -60,6 +60,19 @@ func set_tier(p_tier: int) -> void:
 
 func _update_texture(p_tier: int) -> void:
 	if _is_attacking:
+		var attack_tier_path := UnitStats.attack_tier_texture_path(kind)
+		if not attack_tier_path.is_empty():
+			var attack_source: Texture2D = load(attack_tier_path)
+			if attack_source != null:
+				# 攻擊圖同樣是四格橫向排列，讓升階時攻擊姿態、武器與能量一起變化。
+				var sheet_tier := clampi(p_tier, 1, 4) - 1
+				var frame_width := float(attack_source.get_width()) / 4.0
+				var attack_atlas := AtlasTexture.new()
+				attack_atlas.atlas = attack_source
+				attack_atlas.region = Rect2(
+					frame_width * sheet_tier, 0.0, frame_width, attack_source.get_height())
+				_sprite.texture = attack_atlas
+				return
 		var attack_texture: Texture2D = load(UnitStats.attack_texture_path(kind))
 		if attack_texture != null:
 			_sprite.texture = attack_texture

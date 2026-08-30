@@ -43,18 +43,21 @@ const BASE := {
 		"texture": "res://assets/characters/red_bull.png",
 		"attack_texture": "res://assets/characters/red_bull_attack.png",
 		"tier_texture": "res://assets/characters/tiers/red_bull_tiers.png",
+		"attack_tier_texture": "res://assets/characters/tiers/red_bull_attack_tiers.png",
 	},
 	Kind.GECKO: {
 		"damage": 100.0, "interval": 0.35, "range": 320.0, "splash": 0.0,
 		"texture": "res://assets/characters/gecko.png",
 		"attack_texture": "res://assets/characters/gecko_attack.png",
 		"tier_texture": "res://assets/characters/tiers/gecko_tiers.png",
+		"attack_tier_texture": "res://assets/characters/tiers/gecko_attack_tiers.png",
 	},
 	Kind.DINO: {
 		"damage": 175.0, "interval": 1.0, "range": 330.0, "splash": 70.0,
 		"texture": "res://assets/characters/dino.png",
 		"attack_texture": "res://assets/characters/dino_attack.png",
 		"tier_texture": "res://assets/characters/tiers/dino_tiers.png",
+		"attack_tier_texture": "res://assets/characters/tiers/dino_attack_tiers.png",
 	},
 	Kind.FOX: {
 		"damage": 240.0, "interval": 1.45, "range": 520.0, "splash": 0.0,
@@ -135,6 +138,11 @@ static func tier_texture_path(kind: int) -> String:
 
 static func attack_texture_path(kind: int) -> String:
 	return String(BASE[kind]["attack_texture"])
+
+
+## 牛、蜥蜴、恐龍各有四格升階攻擊圖；其他角色沿用單張攻擊圖。
+static func attack_tier_texture_path(kind: int) -> String:
+	return String(BASE[kind].get("attack_tier_texture", ""))
 
 
 ## 同一張攻擊稿在不同階級會有不同的市場能量色與尺寸脈衝，
